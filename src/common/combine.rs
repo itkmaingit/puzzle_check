@@ -1,8 +1,6 @@
 use crate::common::dataclass::{Composition, Element, Structure};
-use crate::common::relationship::{relationship, D, H, M, V};
+use crate::common::relationship::{relationship, Relationship, D, H, M, V};
 use std::collections::HashSet;
-
-type Relationship = fn(&Element, &Element) -> bool;
 
 fn power_set<T: Clone>(set: &[T]) -> Vec<Vec<T>> {
     let mut result = vec![Vec::new()];
@@ -15,24 +13,34 @@ fn power_set<T: Clone>(set: &[T]) -> Vec<Vec<T>> {
     }
     result
 }
+
 pub fn combine(R: HashSet<Relationship>, E: Vec<Structure>) -> Vec<Structure> {
     let whole_R: HashSet<Relationship> = vec![H, D, M, V].into_iter().collect();
     let not_R: HashSet<Relationship> = whole_R.difference(&R).cloned().collect();
     let power_E = power_set(&E);
     let mut result: Vec<Structure> = Vec::new();
-
     'outer: for e in power_E {
-        if e.len() == 1 {
-            let boxed_e = e.into_iter().map(Box::new).collect();
-            let match_e: Structure = Structure::Composition(Composition::new(boxed_e));
-            result.push(match_e);
+        if e.len() == 0 {
             continue;
         }
 
-        for x in &e {
+        if e.len() == 1 {
+            let e_composed = Composition {
+                val: None,
+                entity: e.clone(),
+            };
+            let match_e: Structure = Structure::Composition(e_composed);
+            result.push(match_e);
+            continue;
+        }
+        // if e.len() >= 4 {
+        //     println!("{:?}", e);
+        //     println!("------");
+        // }
+        'mid_outer: for x in &e {
             let mut related = false;
-            let mut not_related = true;
             for y in &e {
+                let mut not_related = true;
                 if x != y {
                     'inner: for &r in &R {
                         if relationship(x, y, r) {
@@ -41,20 +49,25 @@ pub fn combine(R: HashSet<Relationship>, E: Vec<Structure>) -> Vec<Structure> {
                         }
                     }
                     'inner: for &r in &not_R {
-                        if !relationship(x, y, r) {
+                        if relationship(x, y, r) {
                             not_related = false;
                             break 'inner;
                         }
                     }
-                    let success = related && not_related;
-                    if !success {
+                    if !not_related {
                         continue 'outer;
                     }
                 }
             }
+            if !related {
+                continue 'outer;
+            }
         }
-        let boxed_e = e.into_iter().map(Box::new).collect();
-        let match_e: Structure = Structure::Composition(Composition::new(boxed_e));
+        let e_composed = Composition {
+            val: None,
+            entity: e,
+        };
+        let match_e: Structure = Structure::Composition(e_composed);
         result.push(match_e);
     }
 
