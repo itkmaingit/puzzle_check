@@ -1,20 +1,9 @@
 use crate::common::dataclass::{Composition, Element, Structure};
+use crate::common::function::power_set;
 use crate::common::relationship::{relationship, Relationship, D, H, M, V};
 use std::collections::HashSet;
 
-fn power_set<T: Clone>(set: &[T]) -> Vec<Vec<T>> {
-    let mut result = vec![Vec::new()];
-    for item in set {
-        for subset in result.clone() {
-            let mut new_subset = subset.clone();
-            new_subset.push(item.clone());
-            result.push(new_subset);
-        }
-    }
-    result
-}
-
-pub fn combine(R: HashSet<Relationship>, E: Vec<Structure>) -> Vec<Structure> {
+pub fn combine(R: HashSet<Relationship>, E: &Vec<Structure>) -> Vec<Structure> {
     let whole_R: HashSet<Relationship> = vec![H, D, M, V].into_iter().collect();
     let not_R: HashSet<Relationship> = whole_R.difference(&R).cloned().collect();
     let power_E = power_set(&E);
