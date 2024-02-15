@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 indicatif = "0.17.8"
+rayon = "1.5.1"
+rand = "0.8.3"

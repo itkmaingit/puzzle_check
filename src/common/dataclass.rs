@@ -29,7 +29,7 @@ pub enum Attribute {
     Vc,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Hash, Eq)]
 pub struct Coordinate(pub i32, pub i32);
 
 impl Element {
@@ -57,6 +57,26 @@ impl Element {
 impl Composition {
     pub fn solution(&self) -> i32 {
         return self.val.unwrap();
+    }
+}
+
+impl Coordinate {
+    fn change_coordinate(&mut self, coor: Coordinate) {
+        self.0 += coor.0;
+        self.1 += coor.1;
+    }
+    pub fn horizon_points(&self) -> (Coordinate, Coordinate) {
+        let left = self.clone();
+        let mut right = self.clone();
+        right.change_coordinate(Coordinate(0, 1));
+        return (left, right);
+    }
+
+    pub fn vertical_points(&self) -> (Coordinate, Coordinate) {
+        let top = self.clone();
+        let mut bottom = self.clone();
+        bottom.change_coordinate(Coordinate(1, 0));
+        return (top, bottom);
     }
 }
 

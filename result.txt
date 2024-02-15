@@ -1,0 +1,6 @@
+[(vp(2,3), None), (vp(2,1), None), (vp(1,3), None), (vp(1,2), None), (hp(3,2), None), (hp(3,1), None), (hp(2,1), None), (hp(1,2), None)]
+2
+<None, {(vp(2,2), None), (vp(2,1), None), (vp(1,3), None), (vp(1,1), None), (hp(3,1), None), (hp(2,2), None), (hp(1,2), None), (hp(1,1), None)}>
+
+<None, {(vp(2,3), None), (vp(2,1), None), (vp(1,3), None), (vp(1,1), None), (hp(3,2), None), (hp(3,1), None), (hp(1,2), None), (hp(1,1), None)}>
+
