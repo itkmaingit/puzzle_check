@@ -141,6 +141,22 @@ pub fn cycle(cell: &Structure, Ep: &Vec<Structure>, board_size: &BoardSize) -> i
     unreachable!("cycleでC以外の要素が渡されました！");
 }
 
+pub fn is_side(cell: &Structure, board_size: &BoardSize) -> bool {
+    if let Structure::Element(ref cell_content) = cell {
+        if cell_content.attr != Attribute::C {
+            panic!("is_sideがcell以外に対して呼ばれました！");
+        }
+        let x = cell_content.coor.1;
+        let y = cell_content.coor.0;
+
+        let side_x = board_size.1;
+        let side_y = board_size.0;
+
+        return x == side_x || y == side_y;
+    }
+    panic!("is_sideがcell以外に対して呼ばれました！");
+}
+
 // for cut-off function
 // 同じ構造体同士を足し合わせることを前提とした関数
 pub fn add_up_structures(structure_1: &Structure, structure_2: &Structure) -> Structure {

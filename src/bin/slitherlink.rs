@@ -61,10 +61,10 @@ fn main() {
         let mut index_pi = pi;
 
         for structure_p in compute_P.iter_mut() {
-            if let Structure::Element(ref mut point) = structure_p {
+            if let Structure::Element(ref mut point_content) = structure_p {
                 let digit = index_pi % P_domain_size;
                 index_pi /= P_domain_size;
-                point.val = P_domain[digit];
+                point_content.val = P_domain[digit];
             }
         }
         (0..total_combinations_C).into_par_iter().for_each(|ci| {
@@ -72,10 +72,10 @@ fn main() {
             let mut index_ci = ci;
             // Aの組み合わせを生成
             for structure_c in compute_C.iter_mut() {
-                if let Structure::Element(ref mut cell) = structure_c {
+                if let Structure::Element(ref mut cell_content) = structure_c {
                     let digit = index_ci % C_domain_size;
                     index_ci /= C_domain_size;
-                    cell.val = C_domain[digit];
+                    cell_content.val = C_domain[digit];
                 }
             }
 
@@ -84,10 +84,10 @@ fn main() {
                 let mut index_eci = eci;
 
                 for structure_ec in compute_Ec.iter_mut() {
-                    if let Structure::Element(ref mut edge_c) = structure_ec {
+                    if let Structure::Element(ref mut ec_content) = structure_ec {
                         let digit = index_eci % Ec_domain_size;
                         index_eci /= Ec_domain_size;
-                        edge_c.val = Ec_domain[digit];
+                        ec_content.val = Ec_domain[digit];
                     }
                 }
 
@@ -95,17 +95,18 @@ fn main() {
                     let mut compute_Ep = Ep.clone();
                     for structure_ep in compute_Ep.iter_mut() {
                         {
-                            if let Structure::Composition(ref g) = graph {
-                                if g.entity
+                            if let Structure::Composition(ref g_content) = graph {
+                                if g_content
+                                    .entity
                                     .iter()
                                     .any(|edge| compare_structures(edge, structure_ep))
                                 {
-                                    if let Structure::Element(ref mut edge_p) = structure_ep {
-                                        edge_p.val = Some(1);
+                                    if let Structure::Element(ref mut ep_content) = structure_ep {
+                                        ep_content.val = Some(1);
                                     }
                                 } else {
-                                    if let Structure::Element(ref mut edge_p) = structure_ep {
-                                        edge_p.val = Some(0);
+                                    if let Structure::Element(ref mut ep_content) = structure_ep {
+                                        ep_content.val = Some(0);
                                     }
                                 }
                             }

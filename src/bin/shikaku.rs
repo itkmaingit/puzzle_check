@@ -1,7 +1,7 @@
 // label: cut-off, random
-// name: fiilomino
+// name: shikaku
 
-// Cのdomainは現実的に{1..sqrt(n*m)}のために制限
+//長方形のサイズは現実的にn*m/2程度なのでcut-off
 
 use indicatif::{ProgressBar, ProgressStyle};
 use puzzle_check::common::function::{
@@ -9,6 +9,7 @@ use puzzle_check::common::function::{
     random_subset_with_validation,
 };
 use puzzle_check::common::initialize::initialize;
+use puzzle_check::common::predicates::is_rectangle;
 use puzzle_check::common::relationship::{relationship, Relationship, D, H, M, V};
 use puzzle_check::common::{
     dataclass::{Attribute, BoardSize, Composition, Coordinate, Element, Structure},
@@ -24,7 +25,7 @@ use rayon::prelude::*;
 use std::collections::HashSet;
 
 fn main() {
-    let board_size: BoardSize = BoardSize(4, 5);
+    let board_size: BoardSize = BoardSize(4, 4);
     let LOOP_NUMBERS = 1000;
     let pb = ProgressBar::new(LOOP_NUMBERS);
 
@@ -33,7 +34,7 @@ fn main() {
     // ----------------------------------------------------------------------
     let R: Vec<Relationship> = vec![H, V];
     let not_R: Vec<Relationship> = vec![M];
-    let cutoff_functions: Vec<ValidationFn> = vec![non_cutoff];
+    let cutoff_functions: Vec<ValidationFn> = vec![is_rectangle];
     let A = combine(R, not_R, &C, &cutoff_functions);
 
     // combineの確認---------------------------
@@ -45,13 +46,13 @@ fn main() {
 
     let board_validation_functions: Vec<BoardValidationFn> = vec![non_validation];
 
-    let max_c = ((board_size.0 * board_size.1) as f64).sqrt() as i32;
+    let max_a = board_size.0 * board_size.1 / 2 as i32;
 
     let P_domain: Vec<Option<i32>> = vec![None];
-    let C_domain: Vec<Option<i32>> = (0..=max_c).map(Some).collect();
+    let C_domain: Vec<Option<i32>> = vec![None];
     let Ep_domain: Vec<Option<i32>> = vec![None];
     let Ec_domain: Vec<Option<i32>> = vec![None];
-    let A_domain: Vec<Option<i32>> = vec![None];
+    let A_domain: Vec<Option<i32>> = (0..=max_a).map(Some).collect();
 
     let P_domain_size = P_domain.len();
     let C_domain_size = C_domain.len();
@@ -85,10 +86,10 @@ fn main() {
             let mut index_pi = pi;
 
             for structure_p in compute_P.iter_mut() {
-                if let Structure::Element(ref mut point_content) = structure_p {
+                if let Structure::Element(ref mut point) = structure_p {
                     let digit = index_pi % P_domain_size;
                     index_pi /= P_domain_size;
-                    point_content.val = P_domain[digit];
+                    point.val = P_domain[digit];
                 }
             }
             (0..total_combinations_Ep).into_par_iter().for_each(|epi| {
@@ -115,28 +116,28 @@ fn main() {
                         }
                     }
 
-                    let mut compute_C = C.clone();
-                    for area in power_A.iter() {
+                    (0..total_combinations_C).into_par_iter().for_each(|ci| {
+                        let mut compute_C = C.clone();
+                        let mut index_ci = ci;
+
                         for structure_c in compute_C.iter_mut() {
-                            {
-                                if let Structure::Composition(ref a_content) = area {
-                                    if a_content
-                                        .entity
-                                        .iter()
-                                        .any(|cell| compare_structures(cell, structure_c))
-                                    {
-                                        if let Structure::Element(ref mut c_content) = structure_c {
-                                            c_content.val = Some(a_content.entity.len() as i32);
-                                        }
-                                    }
-                                }
+                            if let Structure::Element(ref mut c_content) = structure_c {
+                                let digit = index_ci % C_domain_size;
+                                index_ci /= C_domain_size;
+                                c_content.val = C_domain[digit];
                             }
                         }
-                    }
-                    pb.inc(1);
-                    println!("{:?}", compute_C);
-                    println!("{:?}", power_A);
-                    println!("");
+                        let mut compute_power_A = power_A.clone();
+                        for area in compute_power_A.iter_mut() {
+                            if let Structure::Composition(ref mut area_content) = area {
+                                let size = area_content.entity.len();
+                                area_content.val = Some(size as i32);
+                            }
+                        }
+                        pb.inc(1);
+                        println!("{:?}", compute_power_A);
+                        println!("");
+                    })
                 })
             })
         })
