@@ -3,36 +3,39 @@ use crate::common::function::{compare_structures, power_set};
 use crate::common::relationship::{relationship, Relationship, D, H, M, V};
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 
 pub type ValidationFn = fn(&Structure) -> bool;
 
+pub fn non_cutoff(_: &Structure) -> bool {
+    return true;
+}
+
 pub fn combine(
-    R: HashSet<Relationship>,
+    R: Vec<Relationship>,
+    not_R: Vec<Relationship>,
     E: &Vec<Structure>,
     cutoff_fn: &Vec<ValidationFn>,
 ) -> Vec<Structure> {
-    let whole_R: HashSet<Relationship> = vec![H, D, M, V].into_iter().collect();
-    let not_R: HashSet<Relationship> = whole_R.difference(&R).cloned().collect();
     let pb_E = ProgressBar::new(2usize.pow(E.len() as u32) as u64);
     let power_E = power_set(&E, &pb_E);
     let pb = ProgressBar::new(power_E.len() as u64);
 
-    let hp12 = Structure::Element(Element::new(Attribute::Hp, Coordinate(1, 2)));
-    let hp21 = Structure::Element(Element::new(Attribute::Hp, Coordinate(2, 1)));
-    let hp31 = Structure::Element(Element::new(Attribute::Hp, Coordinate(3, 1)));
-    let hp32 = Structure::Element(Element::new(Attribute::Hp, Coordinate(3, 2)));
-    let vp12 = Structure::Element(Element::new(Attribute::Vp, Coordinate(1, 2)));
-    let vp13 = Structure::Element(Element::new(Attribute::Vp, Coordinate(1, 3)));
-    let vp21 = Structure::Element(Element::new(Attribute::Vp, Coordinate(2, 1)));
-    let vp23 = Structure::Element(Element::new(Attribute::Vp, Coordinate(2, 3)));
+    // let hp12 = Structure::Element(Element::new(Attribute::Hp, Coordinate(1, 2)));
+    // let hp21 = Structure::Element(Element::new(Attribute::Hp, Coordinate(2, 1)));
+    // let hp31 = Structure::Element(Element::new(Attribute::Hp, Coordinate(3, 1)));
+    // let hp32 = Structure::Element(Element::new(Attribute::Hp, Coordinate(3, 2)));
+    // let vp12 = Structure::Element(Element::new(Attribute::Vp, Coordinate(1, 2)));
+    // let vp13 = Structure::Element(Element::new(Attribute::Vp, Coordinate(1, 3)));
+    // let vp21 = Structure::Element(Element::new(Attribute::Vp, Coordinate(2, 1)));
+    // let vp23 = Structure::Element(Element::new(Attribute::Vp, Coordinate(2, 3)));
 
-    let entity = vec![hp12, hp21, hp31, hp32, vp12, vp13, vp21, vp23];
+    // let entity = vec![hp12, hp21, hp31, hp32, vp12, vp13, vp21, vp23];
 
-    let test_structure = Structure::Composition(Composition {
-        val: None,
-        entity: entity,
-    });
+    // let test_structure = Structure::Composition(Composition {
+    //     val: None,
+    //     entity: entity,
+    // });
 
     // 並列化処理のためにrayonのpar_iterを使用
     let result: Vec<Structure> = power_E
@@ -56,15 +59,6 @@ pub fn combine(
                 }
                 return Some(s);
             }
-            // if e.len() == 8 {
-            //     let s = Structure::Composition(Composition {
-            //         val: None,
-            //         entity: e.clone(),
-            //     });
-            //     if compare_structures(&s, &test_structure) {
-            //         println!("{:?}", e);
-            //     }
-            // }
 
             'outer: for x in e {
                 let mut related = false;
@@ -97,6 +91,9 @@ pub fn combine(
                 val: None,
                 entity: e.clone(),
             });
+            if !all_are_connected(&s, &R) {
+                return None;
+            }
 
             for validate in cutoff_fn {
                 if !validate(&s) {
@@ -109,4 +106,29 @@ pub fn combine(
         .collect();
 
     result
+}
+
+fn all_are_connected(structure: &Structure, R: &Vec<Relationship>) -> bool {
+    if let Structure::Composition(ref composition) = structure {
+        let mut visited: HashSet<Structure> = HashSet::new();
+        let mut queue: VecDeque<Structure> = VecDeque::new();
+        let start_node = composition.entity[0].clone();
+        queue.push_back(start_node);
+        while let Some(current_node) = queue.pop_front() {
+            'outer: for s in composition.entity.iter() {
+                if visited.contains(&s) {
+                    continue 'outer;
+                }
+                for &r in R {
+                    if relationship(&s, &current_node, r) {
+                        queue.push_back(s.clone());
+                        visited.insert(s.clone());
+                        continue 'outer;
+                    }
+                }
+            }
+        }
+        return visited.len() == composition.entity.len();
+    }
+    unreachable!();
 }

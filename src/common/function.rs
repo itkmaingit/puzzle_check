@@ -100,10 +100,10 @@ pub fn random_subset_with_validation(
     }
 }
 
-pub fn extract_random_structure(items: &Vec<Structure>) -> Vec<Structure> {
+pub fn extract_random_structure(items: &Vec<Structure>) -> Structure {
     let mut rng = rand::thread_rng(); // 乱数生成器のインスタンス
     let index = rng.gen_range(0..items.len()); // ランダムなインデックスを生成
-    return vec![items.get(index).unwrap().clone()]; // ランダムに選ばれた要素を返す
+    return items.get(index).unwrap().clone(); // ランダムに選ばれた要素を返す
 }
 
 pub fn cycle(cell: &Structure, Ep: &Vec<Structure>, board_size: &BoardSize) -> i32 {
@@ -139,4 +139,22 @@ pub fn cycle(cell: &Structure, Ep: &Vec<Structure>, board_size: &BoardSize) -> i
         return result;
     }
     unreachable!("cycleでC以外の要素が渡されました！");
+}
+
+// for cut-off function
+// 同じ構造体同士を足し合わせることを前提とした関数
+pub fn add_up_structures(structure_1: &Structure, structure_2: &Structure) -> Structure {
+    if let (Structure::Composition(ref s1), Structure::Composition(ref s2)) =
+        (structure_1, structure_2)
+    {
+        // s1とs2の要素をクローンして新しいVecに結合
+        let add_up_entity: Vec<Structure> = s1
+            .entity
+            .iter()
+            .cloned()
+            .chain(s2.entity.iter().cloned())
+            .collect();
+        return Structure::Composition(Composition::new(add_up_entity));
+    }
+    unreachable!()
 }

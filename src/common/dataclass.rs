@@ -1,25 +1,25 @@
 use std::fmt;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Composition {
     pub val: Option<i32>,
     pub entity: Vec<Structure>,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Element {
     pub val: Option<i32>,
     pub attr: Attribute,
     pub coor: Coordinate,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub enum Structure {
     Composition(Composition),
     Element(Element),
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub enum Attribute {
     P,
     C,
