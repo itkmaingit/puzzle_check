@@ -32,6 +32,8 @@ pub enum Attribute {
 #[derive(Clone, PartialEq, Hash, Eq)]
 pub struct Coordinate(pub i32, pub i32);
 
+pub struct BoardSize(pub i32, pub i32);
+
 impl Element {
     pub fn new(attr: Attribute, coor: Coordinate) -> Self {
         Element {

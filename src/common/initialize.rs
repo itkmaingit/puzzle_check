@@ -1,14 +1,15 @@
-use crate::common::dataclass::{Attribute, Coordinate, Element, Structure};
+use crate::common::dataclass::{Attribute, BoardSize, Coordinate, Element, Structure};
 
 pub fn initialize(
-    n: i32,
-    m: i32,
+    board_size: &BoardSize,
 ) -> (
     Vec<Structure>,
     Vec<Structure>,
     Vec<Structure>,
     Vec<Structure>,
 ) {
+    let n = board_size.0;
+    let m = board_size.1;
     let mut P: Vec<Structure> = Vec::new();
     let mut C: Vec<Structure> = Vec::new();
     let mut Ep: Vec<Structure> = Vec::new();

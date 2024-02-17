@@ -1,7 +1,8 @@
-use crate::common::dataclass::{Composition, Element, Structure};
+use crate::common::dataclass::{Attribute, BoardSize, Composition, Element, Structure};
+use crate::specific::board::BoardValidationFn;
 use indicatif::{ProgressBar, ProgressStyle};
 use rand::Rng;
-use rayon::prelude::*; // 乱数生成器を使用するために必要
+use rayon::prelude::*;
 
 pub fn power_set<T: Clone + Send + Sync>(set: &[T], pb: &ProgressBar) -> Vec<Vec<T>> {
     if set.is_empty() {
@@ -69,20 +70,73 @@ pub fn compare_structures(s1: &Structure, s2: &Structure) -> bool {
                 }
             })
         }
+        (Structure::Element(e1), Structure::Element(e2)) => {
+            return e1.attr == e2.attr && e1.coor == e2.coor;
+        }
         _ => false,
     }
 }
 
-pub fn random_subset<T: Clone>(set: &[T]) -> Vec<T> {
+//
+pub fn random_subset_with_validation(
+    set: &Vec<Structure>,
+    board_validation_fn: &Vec<BoardValidationFn>,
+) -> Vec<Structure> {
     let mut rng = rand::thread_rng(); // 乱数生成器のインスタンス
-    let mut subset = Vec::new();
-
-    for item in set {
-        // 各要素について、50%の確率で部分集合に含める
-        if rng.gen_bool(0.5) {
-            subset.push(item.clone());
+    'outer: loop {
+        let mut subset = Vec::new();
+        for item in set {
+            // 各要素について、50%の確率で部分集合に含める
+            if rng.gen_bool(0.5) {
+                subset.push(item.clone());
+            }
         }
+        for function in board_validation_fn {
+            if !function(&subset) {
+                continue 'outer;
+            }
+        }
+        return subset;
     }
+}
 
-    subset
+pub fn extract_random_structure(items: &Vec<Structure>) -> Vec<Structure> {
+    let mut rng = rand::thread_rng(); // 乱数生成器のインスタンス
+    let index = rng.gen_range(0..items.len()); // ランダムなインデックスを生成
+    return vec![items.get(index).unwrap().clone()]; // ランダムに選ばれた要素を返す
+}
+
+pub fn cycle(cell: &Structure, Ep: &Vec<Structure>, board_size: &BoardSize) -> i32 {
+    if let Structure::Element(ref cell_content) = cell {
+        if cell_content.attr != Attribute::C {
+            panic!("cycleでC以外の要素が渡されました！");
+        }
+        let x = cell_content.coor.1;
+        let y = cell_content.coor.0;
+        let n = board_size.0;
+        let m = board_size.1;
+
+        let h_top = (y - 1) * m + x - 1;
+        let h_bottom = y * m + x - 1;
+        let v_top = m * (n + 1) + (y - 1) * (m + 1) + x - 1;
+        let v_bottom = m * (n + 1) + (y - 1) * (m + 1) + x;
+
+        let mut result = 0;
+
+        if let Structure::Element(ref ep_content) = Ep[h_top as usize] {
+            result += ep_content.val.unwrap();
+        }
+        if let Structure::Element(ref ep_content) = Ep[h_bottom as usize] {
+            result += ep_content.val.unwrap();
+        }
+        if let Structure::Element(ref ep_content) = Ep[v_top as usize] {
+            result += ep_content.val.unwrap();
+        }
+        if let Structure::Element(ref ep_content) = Ep[v_bottom as usize] {
+            result += ep_content.val.unwrap();
+        }
+
+        return result;
+    }
+    unreachable!("cycleでC以外の要素が渡されました！");
 }
