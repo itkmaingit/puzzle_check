@@ -1,4 +1,5 @@
 // label: cut-off
+// name: slitherlink
 
 use indicatif::{ProgressBar, ProgressStyle};
 use puzzle_check::common::dataclass::{
@@ -20,13 +21,14 @@ use rayon::prelude::*;
 use std::collections::HashSet;
 
 fn main() {
-    let board_size: BoardSize = BoardSize(2, 3);
+    let board_size: BoardSize = BoardSize(2, 4);
 
     let (P, C, Ep, Ec) = initialize(&board_size);
     // ----------------------------------------------------------------------
-    let R: HashSet<Relationship> = vec![H, D, V].into_iter().collect();
+    let R: Vec<Relationship> = vec![H, D, V];
+    let not_R: Vec<Relationship> = vec![M];
     let cutoff_functions: Vec<ValidationFn> = vec![only_cycle];
-    let G = combine(R, &Ep, &cutoff_functions);
+    let G = combine(R, not_R, &Ep, &cutoff_functions);
 
     // combineの確認---------------------------
     // println!("{:?}", G.len());
@@ -38,8 +40,8 @@ fn main() {
     let board_validation_functions: Vec<BoardValidationFn> = vec![non_validation];
 
     let P_domain: Vec<Option<i32>> = vec![None];
-    let C_domain: Vec<Option<i32>> = vec![Some(0), Some(1), Some(2), Some(3), Some(4)];
-    let Ep_domain: Vec<Option<i32>> = vec![Some(0), Some(1)];
+    let C_domain: Vec<Option<i32>> = (0..=4).map(Some).collect();
+    let Ep_domain: Vec<Option<i32>> = (0..=1).map(Some).collect();
     let Ec_domain: Vec<Option<i32>> = vec![None];
     let G_domain: Vec<Option<i32>> = vec![None];
 
@@ -96,7 +98,7 @@ fn main() {
                             if let Structure::Composition(ref g) = graph {
                                 if g.entity
                                     .iter()
-                                    .any(|edges| compare_structures(edges, structure_ep))
+                                    .any(|edge| compare_structures(edge, structure_ep))
                                 {
                                     if let Structure::Element(ref mut edge_p) = structure_ep {
                                         edge_p.val = Some(1);
@@ -119,6 +121,7 @@ fn main() {
                     }
                     println!("{:?}", compute_C);
                     println!("{:?}", compute_Ep);
+                    println!("");
                 }
             })
         })
