@@ -25,7 +25,7 @@ use rayon::prelude::*;
 use std::collections::HashSet;
 
 fn main() {
-    let board_size: BoardSize = BoardSize(4, 4);
+    let board_size: BoardSize = BoardSize(5, 5);
     let LOOP_NUMBERS = 1000;
     let pb = ProgressBar::new(LOOP_NUMBERS);
 

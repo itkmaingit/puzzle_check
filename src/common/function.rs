@@ -174,3 +174,37 @@ pub fn add_up_structures(structure_1: &Structure, structure_2: &Structure) -> St
     }
     unreachable!()
 }
+
+pub fn all_different(compares: &Vec<Structure>, parent: &Structure) -> bool {
+    let mut contains: Vec<Structure> = Vec::new();
+
+    if let Structure::Composition(ref parent_content) = parent {
+        for child in parent_content.entity.iter() {
+            // comparesの中で、pと比較してtrueになる要素を探す
+            for compare in compares.iter() {
+                if compare_structures(child, compare) {
+                    // 条件に合致する場合、containsに追加
+                    // ただし、containsに既に同じ要素がないかを確認
+                    if !contains.iter().any(|x| compare_structures(x, compare)) {
+                        contains.push(compare.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    for x in compares.iter() {
+        for y in compares.iter() {
+            if x != y {
+                if let (Structure::Element(ref x_content), Structure::Element(ref y_content)) =
+                    (x, y)
+                {
+                    if x_content.val == y_content.val {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+    return true;
+}
