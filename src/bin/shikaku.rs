@@ -1,4 +1,4 @@
-// label: cut-off, random
+// label: cut-off, random, sparce expected
 // name: shikaku
 
 //長方形のサイズは現実的にn*m/2程度なのでcut-off
@@ -98,7 +98,7 @@ fn main() {
             (0..total_combinations_Ep).into_par_iter().for_each(|epi| {
                 let mut compute_Ep = Ep.clone();
                 let mut index_epi = epi;
-                // Aの組み合わせを生成
+
                 for structure_ep in compute_Ep.iter_mut() {
                     if let Structure::Element(ref mut ep_content) = structure_ep {
                         let digit = index_epi % Ep_domain_size;

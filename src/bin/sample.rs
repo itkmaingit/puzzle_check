@@ -31,7 +31,6 @@ fn main() {
     for i in 0..total_combinations_a {
         let mut index_a = i;
 
-        // Aの組み合わせを生成
         for obj in combinations_a.iter_mut() {
             let digit = index_a % adomain_len;
             index_a /= adomain_len;

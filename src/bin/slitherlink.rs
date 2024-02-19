@@ -73,7 +73,7 @@ fn main() {
         (0..total_combinations_C).into_par_iter().for_each(|ci| {
             let mut compute_C = C.clone();
             let mut index_ci = ci;
-            // Aの組み合わせを生成
+
             for structure_c in compute_C.iter_mut() {
                 if let Structure::Element(ref mut cell_content) = structure_c {
                     let digit = index_ci % C_domain_size;
