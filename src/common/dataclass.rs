@@ -95,7 +95,7 @@ impl fmt::Debug for Structure {
 // CompositionのDebugトレイトを実装
 impl fmt::Debug for Composition {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}, {{", self.val)?;
+        write!(f, "val: {:?}, length: {:?} {{", self.val, self.entity.len())?;
         for (i, entity) in self.entity.iter().enumerate() {
             if i != 0 {
                 write!(f, ", ")?;

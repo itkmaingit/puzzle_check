@@ -20,13 +20,14 @@ use puzzle_check::{
 use rayon::prelude::*;
 use std::collections::HashSet;
 
-const n: i32 = 3;
-const m: i32 = 3;
+const n: i32 = 4;
+const m: i32 = 4;
 
 fn main() {
-    let board_size: BoardSize = BoardSize(3, 3);
+    let board_size: BoardSize = BoardSize(n, m);
 
     let (P, C, Ep, Ec) = initialize(&board_size);
+
     // ----------------------------------------------------------------------
     let R: Vec<Relationship> = vec![H, D, V];
     let not_R: Vec<Relationship> = vec![M];
@@ -58,6 +59,18 @@ fn main() {
     let total_combinations_C = C_domain_size.pow(C.len() as u32);
     let total_combinations_Ep = Ep_domain_size.pow(Ep.len() as u32);
     let total_combinations_Ec = P_domain_size.pow(Ec.len() as u32);
+
+    let pb = ProgressBar::new(
+        (total_combinations_P
+            * total_combinations_C
+            * total_combinations_Ep
+            * total_combinations_Ec) as u64,
+    );
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("main    {bar:40.cyan/blue} {pos}/{len} {percent}% {eta} ")
+            .unwrap(),
+    );
 
     (0..total_combinations_P).into_par_iter().for_each(|pi| {
         let mut compute_P = P.clone();
@@ -129,5 +142,6 @@ fn main() {
                 }
             })
         })
-    })
+    });
+    pb.finish();
 }

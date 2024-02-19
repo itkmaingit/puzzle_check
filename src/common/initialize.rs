@@ -58,7 +58,7 @@ pub fn initialize(
     for i in 0..n - 1 {
         for j in 0..m {
             let coordinate = Coordinate(i + 1, j + 1);
-            let cell_vertical_edge = Structure::Element(Element::new(Attribute::Hc, coordinate));
+            let cell_vertical_edge = Structure::Element(Element::new(Attribute::Vc, coordinate));
             Ec.push(cell_vertical_edge);
         }
     }

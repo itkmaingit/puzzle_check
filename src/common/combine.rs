@@ -18,8 +18,20 @@ pub fn combine(
     cutoff_fn: &Vec<ValidationFn>,
 ) -> Vec<Structure> {
     let pb_E = ProgressBar::new(2usize.pow(E.len() as u32) as u64);
+    pb_E.set_style(
+        ProgressStyle::default_bar()
+            .template("subset  {bar:40.cyan/blue} {pos}/{len} {percent}% {eta}")
+            .unwrap(),
+    );
+
     let power_E = power_set(&E, &pb_E);
+    pb_E.finish();
     let pb = ProgressBar::new(power_E.len() as u64);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("combine {bar:40.cyan/blue} {pos}/{len} {percent}% {eta}")
+            .unwrap(),
+    );
 
     // let hp12 = Structure::Element(Element::new(Attribute::Hp, Coordinate(1, 2)));
     // let hp21 = Structure::Element(Element::new(Attribute::Hp, Coordinate(2, 1)));
@@ -105,7 +117,8 @@ pub fn combine(
         })
         .collect();
 
-    result
+    pb.finish();
+    return result;
 }
 
 fn all_are_connected(structure: &Structure, R: &Vec<Relationship>) -> bool {

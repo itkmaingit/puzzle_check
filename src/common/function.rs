@@ -3,6 +3,7 @@ use crate::specific::board::BoardValidationFn;
 use indicatif::{ProgressBar, ProgressStyle};
 use rand::Rng;
 use rayon::prelude::*;
+use std::collections::HashMap;
 
 pub fn power_set<T: Clone + Send + Sync>(set: &[T], pb: &ProgressBar) -> Vec<Vec<T>> {
     if set.is_empty() {
@@ -77,7 +78,6 @@ pub fn compare_structures(s1: &Structure, s2: &Structure) -> bool {
     }
 }
 
-//
 pub fn random_subset_with_validation(
     set: &Vec<Structure>,
     board_validation_fn: &Vec<BoardValidationFn>,
@@ -155,6 +155,62 @@ pub fn is_side(cell: &Structure, board_size: &BoardSize) -> bool {
         return x == side_x || y == side_y;
     }
     panic!("is_sideがcell以外に対して呼ばれました！");
+}
+
+pub fn line_edgepoints(line: &Structure) -> Vec<Structure> {
+    let mut counts: HashMap<Coordinate, i32> = HashMap::new();
+    let mut is_point = true;
+    if let Structure::Composition(ref l) = line {
+        for edge in &l.entity {
+            if let Structure::Element(ref e) = edge {
+                match e.attr {
+                    Attribute::Hp | Attribute::Hc => {
+                        let points = e.coor.horizon_points();
+                        *counts.entry(points.0.clone()).or_insert(0) += 1;
+                        *counts.entry(points.1.clone()).or_insert(0) += 1;
+                        if e.attr == Attribute::Hp {
+                            is_point = true;
+                        } else {
+                            is_point = false;
+                        }
+                    }
+                    Attribute::Vp | Attribute::Vc => {
+                        let points = e.coor.vertical_points();
+                        *counts.entry(points.0.clone()).or_insert(0) += 1;
+                        *counts.entry(points.1.clone()).or_insert(0) += 1;
+                        if e.attr == Attribute::Vp {
+                            is_point = true;
+                        } else {
+                            is_point = false;
+                        }
+                    }
+                    _ => unreachable!(), // _と=>の間にスペースを追加
+                }
+            }
+        }
+    }
+
+    let single_coors: Vec<Coordinate> = counts
+        .iter()
+        .filter(|(_, &count)| count == 1)
+        .map(|(coor, _)| coor.clone())
+        .collect();
+
+    let mut result: Vec<Structure> = Vec::new();
+
+    if is_point {
+        for coor in single_coors.iter() {
+            let edgepoint = Structure::Element(Element::new(Attribute::P, coor.clone()));
+            result.push(edgepoint);
+        }
+    } else {
+        for coor in single_coors.iter() {
+            let edgepoint = Structure::Element(Element::new(Attribute::C, coor.clone()));
+            result.push(edgepoint);
+        }
+    }
+
+    return result;
 }
 
 // for cut-off function

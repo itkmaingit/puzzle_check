@@ -40,6 +40,12 @@ const m: i32 = 4;
 fn main() {
     let board_size: BoardSize = BoardSize(n, m);
     let LOOP_NUMBERS = 1000;
+    let pb = ProgressBar::new(LOOP_NUMBERS);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("main    {bar:40.cyan/blue} {pos}/{len} {percent}% {eta}")
+            .unwrap(),
+    );
 
     let (P, C, Ep, Ec) = initialize(&board_size);
 
@@ -192,4 +198,5 @@ fn main() {
             })
         }
     });
+    pb.finish();
 }
