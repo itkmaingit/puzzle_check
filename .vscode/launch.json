@@ -26,11 +26,11 @@
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Debug executable 'slitherlink'",
+      "name": "Debug executable puzzle",
       "cargo": {
         "args": [
           "build",
-          "--bin=slitherlink",
+          "--bin=${fileBasenameNoExtension}",
           "--package=puzzle_check"
         ],
         "filter": {

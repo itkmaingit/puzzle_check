@@ -1,4 +1,4 @@
-use crate::common::dataclass::{Attribute, BoardSize, Composition, Element, Structure};
+use crate::common::dataclass::{Attribute, BoardSize, Composition, Coordinate, Element, Structure};
 use crate::specific::board::BoardValidationFn;
 use indicatif::{ProgressBar, ProgressStyle};
 use rand::Rng;
@@ -175,7 +175,10 @@ pub fn add_up_structures(structure_1: &Structure, structure_2: &Structure) -> St
     unreachable!()
 }
 
-pub fn all_different(compares: &Vec<Structure>, parent: &Structure) -> bool {
+pub fn extract_contains_structures(
+    compares: &Vec<Structure>,
+    parent: &Structure,
+) -> Vec<Structure> {
     let mut contains: Vec<Structure> = Vec::new();
 
     if let Structure::Composition(ref parent_content) = parent {
@@ -192,9 +195,14 @@ pub fn all_different(compares: &Vec<Structure>, parent: &Structure) -> bool {
             }
         }
     }
+    return contains;
+}
 
-    for x in compares.iter() {
-        for y in compares.iter() {
+pub fn all_different(compares: &Vec<Structure>, parent: &Structure) -> bool {
+    let contains = extract_contains_structures(compares, parent);
+
+    for x in contains.iter() {
+        for y in contains.iter() {
             if x != y {
                 if let (Structure::Element(ref x_content), Structure::Element(ref y_content)) =
                     (x, y)
@@ -207,4 +215,36 @@ pub fn all_different(compares: &Vec<Structure>, parent: &Structure) -> bool {
         }
     }
     return true;
+}
+
+//TODO: C以外も実装
+pub fn adjacent(element: &Structure, parent: &Vec<Structure>) -> Vec<Structure> {
+    if let Structure::Element(ref element_content) = element {
+        match element_content.attr {
+            Attribute::C => {
+                let x = element_content.coor.1;
+                let y = element_content.coor.0;
+                let mut result: Vec<Structure> = Vec::new();
+                let coor_top = Coordinate(y - 1, x);
+                let coor_bottom = Coordinate(y + 1, x);
+                let coor_left = Coordinate(y, x - 1);
+                let coor_right = Coordinate(y, x + 1);
+
+                for child in parent.iter() {
+                    if let Structure::Element(ref child_content) = child {
+                        if child_content.coor == coor_top
+                            || child_content.coor == coor_bottom
+                            || child_content.coor == coor_left
+                            || child_content.coor == coor_right
+                        {
+                            result.push(child.clone());
+                        }
+                    }
+                }
+                return result;
+            }
+            _ => unreachable!(),
+        }
+    }
+    unreachable!();
 }

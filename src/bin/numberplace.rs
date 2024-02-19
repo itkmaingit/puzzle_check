@@ -34,8 +34,11 @@ fn size_limitation(area: &Structure) -> bool {
     }
 }
 
+const n: i32 = 4;
+const m: i32 = 4;
+
 fn main() {
-    let board_size: BoardSize = BoardSize(4, 4);
+    let board_size: BoardSize = BoardSize(n, m);
     let LOOP_NUMBERS = 1000;
 
     let (P, C, Ep, Ec) = initialize(&board_size);

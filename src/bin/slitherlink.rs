@@ -20,8 +20,11 @@ use puzzle_check::{
 use rayon::prelude::*;
 use std::collections::HashSet;
 
+const n: i32 = 3;
+const m: i32 = 3;
+
 fn main() {
-    let board_size: BoardSize = BoardSize(2, 4);
+    let board_size: BoardSize = BoardSize(3, 3);
 
     let (P, C, Ep, Ec) = initialize(&board_size);
     // ----------------------------------------------------------------------

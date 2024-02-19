@@ -24,8 +24,11 @@ use puzzle_check::{
 use rayon::prelude::*;
 use std::collections::HashSet;
 
+const n: i32 = 4;
+const m: i32 = 4;
+
 fn main() {
-    let board_size: BoardSize = BoardSize(5, 5);
+    let board_size: BoardSize = BoardSize(n, m);
     let LOOP_NUMBERS = 1000;
     let pb = ProgressBar::new(LOOP_NUMBERS);
 
