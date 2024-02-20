@@ -24,10 +24,10 @@ use std::collections::HashSet;
 
 const n: i32 = 4;
 const m: i32 = 4;
+const board_size: BoardSize = BoardSize(n, m);
+const LOOP_NUMBERS: u64 = 100000;
 
 fn main() {
-    let board_size: BoardSize = BoardSize(n, m);
-    let LOOP_NUMBERS = 100000;
     let pb = ProgressBar::new(LOOP_NUMBERS);
     pb.set_style(
         ProgressStyle::default_bar()

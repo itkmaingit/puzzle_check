@@ -92,6 +92,9 @@ pub fn random_subset_with_validation(
                 subset.push(item.clone());
             }
         }
+        if subset.len() == 0 {
+            continue 'outer;
+        }
         for function in board_validation_fn {
             if !function(&subset) {
                 continue 'outer;
@@ -228,6 +231,33 @@ pub fn add_up_structures(structure_1: &Structure, structure_2: &Structure) -> St
             .chain(s2.entity.iter().cloned())
             .collect();
         return Structure::Composition(Composition::new(add_up_entity));
+    }
+    unreachable!()
+}
+
+// for cut-off function
+// 同じ構造体を減算するための関数
+pub fn subtract_structures(minuend: &Structure, subtrahend: &Structure) -> Structure {
+    if let (
+        Structure::Composition(ref minuend_content),
+        Structure::Composition(ref subtrahend_content),
+    ) = (minuend, subtrahend)
+    {
+        let difference_entity: Vec<Structure> = minuend_content
+            .entity
+            .iter()
+            .filter({
+                |&minuend_elem| {
+                    !subtrahend_content
+                        .entity
+                        .iter()
+                        .any(|subtrahend_elem| compare_structures(minuend_elem, subtrahend_elem))
+                }
+            })
+            .cloned()
+            .collect();
+
+        return Structure::Composition(Composition::new(difference_entity));
     }
     unreachable!()
 }

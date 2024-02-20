@@ -1,12 +1,15 @@
 // label: cut-off, sparce expected, random
-// name: usowan
+// name: hitori
 
 use indicatif::{ProgressBar, ProgressStyle};
-use puzzle_check::common::predicates::{is_not_rectangle, is_rectangle};
 use puzzle_check::common::relationship::{relationship, Relationship, D, H, M, V};
 use puzzle_check::common::{
     dataclass::{Attribute, BoardSize, Composition, Coordinate, Element, Structure},
-    function::add_up_structures,
+    function::{add_up_structures, subtract_structures},
+};
+use puzzle_check::common::{
+    function::all_different,
+    predicates::{is_not_rectangle, is_rectangle},
 };
 use puzzle_check::specific::board::non_validation;
 use puzzle_check::specific::graph::only_cycle;
@@ -27,11 +30,20 @@ use puzzle_check::{
 use puzzle_check::{common::initialize::initialize, specific::board};
 use rayon::prelude::*;
 use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 // random_subsetが終了しないためサイズ制限を導入
 fn size_limitation(area: &Structure) -> bool {
     if let Structure::Composition(ref area_content) = area {
-        return area_content.entity.len() as i32 == 2;
+        return area_content.entity.len() as i32 <= 2;
+    } else {
+        unreachable!()
+    }
+}
+fn size_limitation_n(area: &Structure) -> bool {
+    if let Structure::Composition(ref area_content) = area {
+        return area_content.entity.len() as i32 == n;
     } else {
         unreachable!()
     }
@@ -53,10 +65,9 @@ pub fn non_division(area: &Structure) -> bool {
     return true;
 }
 
-const n: i32 = 5;
-const m: i32 = 5;
+const n: i32 = 3;
 const black: i32 = -1;
-const board_size: BoardSize = BoardSize(n, m);
+const board_size: BoardSize = BoardSize(n, n);
 const LOOP_NUMBERS: u64 = 1000;
 
 fn main() {
@@ -67,24 +78,37 @@ fn main() {
             .unwrap(),
     );
 
+    let print_lock = Arc::new(Mutex::new(()));
+
     let (P, C, Ep, Ec) = initialize(&board_size);
 
     // ----------------------------------------------------------------------
     let R: Vec<Relationship> = vec![D];
     let not_R: Vec<Relationship> = vec![M];
-    let cutoff_functions_room: Vec<ValidationFn> = vec![size_limitation, non_division];
-    let A = combine(R, not_R, &C, &cutoff_functions_room);
+    let row_R: Vec<Relationship> = vec![H];
+    let not_row_R: Vec<Relationship> = vec![D, V, M];
+    let col_R: Vec<Relationship> = vec![V];
+    let not_col_R: Vec<Relationship> = vec![H, D, M];
+    let cutoff_functions: Vec<ValidationFn> = vec![size_limitation, non_division];
+    let cutoff_functions_for_different: Vec<ValidationFn> = vec![size_limitation_n];
+    let A = combine(R, not_R, &C, &cutoff_functions);
+    let row_A = combine(row_R, not_row_R, &C, &cutoff_functions_for_different);
+    let col_A = combine(col_R, not_col_R, &C, &cutoff_functions_for_different);
 
     // combineの確認---------------------------
-    // println!("{:?}", A.len());
-    // for a in A.iter() {
+    // println!("{:?}", row_A.len());
+    // for a in row_A.iter() {
+    //     println!("{:?}", a);
+    // }
+    // println!("{:?}", col_A.len());
+    // for a in col_A.iter() {
     //     println!("{:?}", a);
     // }
 
     // ---------------------------------------
 
     let P_domain: Vec<Option<i32>> = vec![None];
-    let C_domain: Vec<Option<i32>> = (0..=4).map(Some).collect();
+    let C_domain: Vec<Option<i32>> = (1..=n).map(Some).collect();
     let Ep_domain: Vec<Option<i32>> = vec![None];
     let Ec_domain: Vec<Option<i32>> = vec![None];
     let A_domain: Vec<Option<i32>> = vec![None];
@@ -96,11 +120,11 @@ fn main() {
     let A_domain_size = A_domain.len();
 
     let total_combinations_P = P_domain_size.pow(P.len() as u32);
-    let total_combinations_C = C_domain_size.pow(C.len() as u32);
     let total_combinations_Ep = Ep_domain_size.pow(Ep.len() as u32);
     let total_combinations_Ec = P_domain_size.pow(Ec.len() as u32);
 
     (0..LOOP_NUMBERS).into_par_iter().for_each(|_| {
+        let print_lock_clone = Arc::clone(&print_lock);
         let mut B = Structure::Composition(Composition::new(vec![]));
         let mut power_A: Vec<Structure> = vec![];
 
@@ -113,37 +137,10 @@ fn main() {
 
         let power_A = random_subset_with_validation(&A, &board_validation_fn);
 
-        let mut independent_C = C.clone();
         let readonly_C = C.clone();
-
-        'outer: for cell in independent_C.iter_mut() {
-            let mut value = 0;
-            for area in power_A.iter() {
-                if let Structure::Composition(ref area_content) = area {
-                    for black_cell in area_content.entity.iter() {
-                        if compare_structures(cell, black_cell) {
-                            continue 'outer;
-                        }
-                    }
-                }
-            }
-            for adjacent in adjacent(cell, &readonly_C) {
-                for area in power_A.iter() {
-                    if let Structure::Composition(ref area_content) = area {
-                        if area_content
-                            .entity
-                            .iter()
-                            .any(|black_cell| compare_structures(&adjacent, black_cell))
-                        {
-                            value += 1;
-                        }
-                    }
-                }
-            }
-            // add to probability
-            if let Structure::Element(ref mut cell_content) = cell {
-                cell_content.val = Some(value);
-            }
+        let mut pseudo_C = Structure::Composition(Composition::new(readonly_C));
+        for area in power_A.iter() {
+            pseudo_C = subtract_structures(&pseudo_C, area);
         }
 
         (0..total_combinations_P).into_par_iter().for_each(|pi| {
@@ -181,10 +178,42 @@ fn main() {
                             ec_content.val = Ec_domain[digit];
                         }
                     }
+                    if let Structure::Composition(ref pseudo_C_content) = pseudo_C {
+                        let total_combinations_C =
+                            C_domain_size.pow(pseudo_C_content.entity.len() as u32);
+                        (0..total_combinations_C).into_par_iter().for_each(|ci| {
+                            let mut index_ci = ci;
+                            if let Structure::Composition(ref pseudo_C_content) = pseudo_C {
+                                let mut independent_C = pseudo_C_content.clone();
+                                let mut success = true;
 
-                    println!("black: {:?} {:?}", power_A.len(), power_A);
-                    println!("{:?}", independent_C);
-                    println!("");
+                                for structure_c in independent_C.entity.iter_mut() {
+                                    if let Structure::Element(ref mut c_content) = structure_c {
+                                        let digit = index_ci % C_domain_size;
+                                        index_ci /= C_domain_size;
+                                        c_content.val = C_domain[digit];
+                                    }
+                                }
+                                for row in row_A.iter() {
+                                    if !all_different(&independent_C.entity, row) {
+                                        success = false;
+                                    }
+                                }
+                                for col in col_A.iter() {
+                                    if !all_different(&independent_C.entity, col) {
+                                        success = false;
+                                    }
+                                }
+
+                                if success {
+                                    let _lock = print_lock_clone.lock().unwrap();
+                                    println!("black: {:?} {:?}", power_A.len(), power_A);
+                                    println!("{:?}", independent_C);
+                                    println!("");
+                                }
+                            }
+                        })
+                    }
                 })
             })
         });

@@ -26,10 +26,10 @@ use std::collections::HashSet;
 
 const n: i32 = 4;
 const m: i32 = 4;
+const board_size: BoardSize = BoardSize(n, m);
+const LOOP_NUMBERS: u64 = 1000;
 
 fn main() {
-    let board_size: BoardSize = BoardSize(n, m);
-    let LOOP_NUMBERS = 1000;
     let pb = ProgressBar::new(LOOP_NUMBERS);
     pb.set_style(
         ProgressStyle::default_bar()
@@ -73,7 +73,7 @@ fn main() {
     let total_combinations_Ep = Ep_domain_size.pow(Ep.len() as u32);
     let total_combinations_Ec = P_domain_size.pow(Ec.len() as u32);
 
-    (0..1000).into_par_iter().for_each(|_| {
+    (0..LOOP_NUMBERS).into_par_iter().for_each(|_| {
         let mut B = Structure::Composition(Composition::new(vec![]));
         let mut power_A: Vec<Structure> = vec![];
         'inner: loop {

@@ -1,4 +1,5 @@
-use crate::common::dataclass::{Attribute, Coordinate, Element, Structure};
+use crate::common::dataclass::{Attribute, BoardSize, Coordinate, Element, Structure};
+use crate::common::function::is_side;
 use crate::common::relationship::{relationship, Relationship, D, H, M, V};
 
 // カットオフ条件（正しい盤面である）を満たしていればTrueを返す
@@ -47,4 +48,15 @@ pub fn non_vertical_structures(B: &Vec<Structure>) -> bool {
     return true;
 }
 
-// pub fn non_division()
+pub fn non_diagonal_structures(B: &Vec<Structure>) -> bool {
+    for s1 in B.iter() {
+        for s2 in B.iter() {
+            if s1 != s2 {
+                if relationship(s1, s2, D) {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}

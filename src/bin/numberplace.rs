@@ -36,10 +36,10 @@ fn size_limitation(area: &Structure) -> bool {
 
 const n: i32 = 4;
 const m: i32 = 4;
+const board_size: BoardSize = BoardSize(n, m);
+const LOOP_NUMBERS: u64 = 1000;
 
 fn main() {
-    let board_size: BoardSize = BoardSize(n, m);
-    let LOOP_NUMBERS = 1000;
     let pb = ProgressBar::new(LOOP_NUMBERS);
     pb.set_style(
         ProgressStyle::default_bar()

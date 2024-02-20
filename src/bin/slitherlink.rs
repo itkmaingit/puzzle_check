@@ -22,10 +22,9 @@ use std::collections::HashSet;
 
 const n: i32 = 4;
 const m: i32 = 4;
+const board_size: BoardSize = BoardSize(n, m);
 
 fn main() {
-    let board_size: BoardSize = BoardSize(n, m);
-
     let (P, C, Ep, Ec) = initialize(&board_size);
 
     // ----------------------------------------------------------------------
