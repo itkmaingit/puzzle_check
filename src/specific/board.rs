@@ -46,3 +46,5 @@ pub fn non_vertical_structures(B: &Vec<Structure>) -> bool {
     }
     return true;
 }
+
+// pub fn non_division()

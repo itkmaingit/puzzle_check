@@ -1,14 +1,8 @@
-// label: cut-off, random, sparce expected
-// name: fiilomino
-
-// Cのdomainは現実的に{1..sqrt(n*m)}のために制限
+// label: cut-off, sparce expected, random
+// name: usowan
 
 use indicatif::{ProgressBar, ProgressStyle};
-use puzzle_check::common::function::{
-    compare_structures, cycle, extract_random_structure, power_set, progress_size,
-    random_subset_with_validation,
-};
-use puzzle_check::common::initialize::initialize;
+use puzzle_check::common::predicates::{is_not_rectangle, is_rectangle};
 use puzzle_check::common::relationship::{relationship, Relationship, D, H, M, V};
 use puzzle_check::common::{
     dataclass::{Attribute, BoardSize, Composition, Coordinate, Element, Structure},
@@ -20,11 +14,31 @@ use puzzle_check::{
     common::combine::{combine, non_cutoff, ValidationFn},
     specific::board::BoardValidationFn,
 };
+use puzzle_check::{
+    common::function::{
+        adjacent, compare_structures, cycle, extract_random_structure, power_set, progress_size,
+        random_subset_with_validation,
+    },
+    specific::board::{
+        non_horizontal_structures, non_matching_structures, non_vertical_structures,
+    },
+};
+use puzzle_check::{common::initialize::initialize, specific::board};
 use rayon::prelude::*;
 use std::collections::HashSet;
 
+// random_subsetが終了しないためサイズ制限を導入
+fn size_limitation(area: &Structure) -> bool {
+    if let Structure::Composition(ref area_content) = area {
+        return area_content.entity.len() as i32 <= 3;
+    } else {
+        unreachable!()
+    }
+}
+
 const n: i32 = 4;
 const m: i32 = 5;
+const black: i32 = -1;
 
 fn main() {
     let board_size: BoardSize = BoardSize(n, m);
@@ -39,24 +53,23 @@ fn main() {
     let (P, C, Ep, Ec) = initialize(&board_size);
 
     // ----------------------------------------------------------------------
-    let R: Vec<Relationship> = vec![H, V];
+    let R: Vec<Relationship> = vec![D];
     let not_R: Vec<Relationship> = vec![M];
-    let cutoff_functions: Vec<ValidationFn> = vec![non_cutoff];
-    let A = combine(R, not_R, &C, &cutoff_functions);
+    let cutoff_functions_room: Vec<ValidationFn> = vec![size_limitation];
+    let A = combine(R, not_R, &C, &cutoff_functions_room);
 
     // combineの確認---------------------------
     // println!("{:?}", A.len());
     // for a in A.iter() {
     //     println!("{:?}", a);
     // }
+
     // ---------------------------------------
 
     let board_validation_functions: Vec<BoardValidationFn> = vec![non_validation];
 
-    let max_c = ((board_size.0 * board_size.1) as f64).sqrt() as i32;
-
     let P_domain: Vec<Option<i32>> = vec![None];
-    let C_domain: Vec<Option<i32>> = (0..=max_c).map(Some).collect();
+    let C_domain: Vec<Option<i32>> = (0..=4).map(Some).collect();
     let Ep_domain: Vec<Option<i32>> = vec![None];
     let Ec_domain: Vec<Option<i32>> = vec![None];
     let A_domain: Vec<Option<i32>> = vec![None];
@@ -72,33 +85,63 @@ fn main() {
     let total_combinations_Ep = Ep_domain_size.pow(Ep.len() as u32);
     let total_combinations_Ec = P_domain_size.pow(Ec.len() as u32);
 
-    (0..1000).into_par_iter().for_each(|_| {
+    (0..LOOP_NUMBERS).into_par_iter().for_each(|_| {
         let mut B = Structure::Composition(Composition::new(vec![]));
         let mut power_A: Vec<Structure> = vec![];
-        'inner: loop {
-            if let Structure::Composition(ref B_content) = B {
-                if B_content.entity.len() == C.len() {
-                    break 'inner;
+
+        let board_validation_fn: Vec<BoardValidationFn> = vec![
+            non_matching_structures,
+            non_horizontal_structures,
+            non_vertical_structures,
+        ];
+
+        let power_A = random_subset_with_validation(&A, &board_validation_fn);
+
+        let mut independent_C = C.clone();
+        let readonly_C = C.clone();
+
+        'outer: for cell in independent_C.iter_mut() {
+            let mut value = 0;
+            for area in power_A.iter() {
+                if let Structure::Composition(ref area_content) = area {
+                    for black_cell in area_content.entity.iter() {
+                        if compare_structures(cell, black_cell) {
+                            continue 'outer;
+                        }
+                    }
                 }
             }
-            let new_area = extract_random_structure(&A);
-            if relationship(&new_area, &B, M) {
-                continue 'inner;
+            for adjacent in adjacent(cell, &readonly_C) {
+                for area in power_A.iter() {
+                    if let Structure::Composition(ref area_content) = area {
+                        if area_content
+                            .entity
+                            .iter()
+                            .any(|black_cell| compare_structures(&adjacent, black_cell))
+                        {
+                            value += 1;
+                        }
+                    }
+                }
             }
-            B = add_up_structures(&B, &new_area);
-            power_A.push(new_area);
+            // add to probability
+            if let Structure::Element(ref mut cell_content) = cell {
+                cell_content.val = Some(value);
+            }
         }
+
         (0..total_combinations_P).into_par_iter().for_each(|pi| {
             let mut independent_P = P.clone();
             let mut index_pi = pi;
 
             for structure_p in independent_P.iter_mut() {
-                if let Structure::Element(ref mut point_content) = structure_p {
+                if let Structure::Element(ref mut point) = structure_p {
                     let digit = index_pi % P_domain_size;
                     index_pi /= P_domain_size;
-                    point_content.val = P_domain[digit];
+                    point.val = P_domain[digit];
                 }
             }
+
             (0..total_combinations_Ep).into_par_iter().for_each(|epi| {
                 let mut independent_Ep = Ep.clone();
                 let mut index_epi = epi;
@@ -123,31 +166,14 @@ fn main() {
                         }
                     }
 
-                    let mut independent_C = C.clone();
-                    for area in power_A.iter() {
-                        for structure_c in independent_C.iter_mut() {
-                            {
-                                if let Structure::Composition(ref a_content) = area {
-                                    if a_content
-                                        .entity
-                                        .iter()
-                                        .any(|cell| compare_structures(cell, structure_c))
-                                    {
-                                        if let Structure::Element(ref mut c_content) = structure_c {
-                                            c_content.val = Some(a_content.entity.len() as i32);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    pb.inc(1);
+                    println!("black: {:?} {:?}", power_A.len(), power_A);
                     println!("{:?}", independent_C);
-                    println!("{:?}", power_A);
                     println!("");
                 })
             })
-        })
+        });
+
+        pb.inc(1);
     });
     pb.finish();
 }

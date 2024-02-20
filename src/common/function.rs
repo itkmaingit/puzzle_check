@@ -78,6 +78,7 @@ pub fn compare_structures(s1: &Structure, s2: &Structure) -> bool {
     }
 }
 
+//計算量の爆発に注意、基本的にCompositionのサイズに制限を入れずにboard_validation_fnを用意すると爆発する
 pub fn random_subset_with_validation(
     set: &Vec<Structure>,
     board_validation_fn: &Vec<BoardValidationFn>,

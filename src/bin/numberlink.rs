@@ -1,4 +1,4 @@
-// label: cut-off, sparce expected, random
+// label: cut-off, random
 // name: chocobanana
 
 use indicatif::{ProgressBar, ProgressStyle};
@@ -92,12 +92,12 @@ fn main() {
             B = add_up_structures(&B, &new_line);
             power_L.push(new_line);
         }
-        let mut compute_Ec = Ec.clone();
+        let mut independent_Ec = Ec.clone();
         for (i, line) in power_L.iter_mut().enumerate() {
             if let Structure::Composition(ref mut line_content) = line {
                 line_content.val = Some(i as i32);
                 for edge in line_content.entity.iter() {
-                    for compare_edge in compute_Ec.iter_mut() {
+                    for compare_edge in independent_Ec.iter_mut() {
                         if compare_structures(edge, &compare_edge) {
                             if let Structure::Element(ref mut compare_edge_content) = compare_edge {
                                 compare_edge_content.val = Some(1);
@@ -109,10 +109,10 @@ fn main() {
         }
         if next {
             (0..total_combinations_P).into_par_iter().for_each(|pi| {
-                let mut compute_P = P.clone();
+                let mut independent_P = P.clone();
                 let mut index_pi = pi;
 
-                for structure_p in compute_P.iter_mut() {
+                for structure_p in independent_P.iter_mut() {
                     if let Structure::Element(ref mut point) = structure_p {
                         let digit = index_pi % P_domain_size;
                         index_pi /= P_domain_size;
@@ -120,10 +120,10 @@ fn main() {
                     }
                 }
                 (0..total_combinations_C).into_par_iter().for_each(|ci| {
-                    let mut compute_C = C.clone();
+                    let mut independent_C = C.clone();
                     let mut index_ci = ci;
 
-                    for structure_c in compute_C.iter_mut() {
+                    for structure_c in independent_C.iter_mut() {
                         if let Structure::Element(ref mut c_content) = structure_c {
                             let digit = index_ci % C_domain_size;
                             index_ci /= C_domain_size;
@@ -131,10 +131,10 @@ fn main() {
                         }
                     }
                     (0..total_combinations_Ep).into_par_iter().for_each(|epi| {
-                        let mut compute_Ep = Ep.clone();
+                        let mut independent_Ep = Ep.clone();
                         let mut index_epi = epi;
 
-                        for structure_ep in compute_Ep.iter_mut() {
+                        for structure_ep in independent_Ep.iter_mut() {
                             if let Structure::Element(ref mut ep_content) = structure_ep {
                                 let digit = index_epi % Ep_domain_size;
                                 index_epi /= Ep_domain_size;

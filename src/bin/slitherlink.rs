@@ -73,10 +73,10 @@ fn main() {
     );
 
     (0..total_combinations_P).into_par_iter().for_each(|pi| {
-        let mut compute_P = P.clone();
+        let mut independent_P = P.clone();
         let mut index_pi = pi;
 
-        for structure_p in compute_P.iter_mut() {
+        for structure_p in independent_P.iter_mut() {
             if let Structure::Element(ref mut point_content) = structure_p {
                 let digit = index_pi % P_domain_size;
                 index_pi /= P_domain_size;
@@ -84,10 +84,10 @@ fn main() {
             }
         }
         (0..total_combinations_C).into_par_iter().for_each(|ci| {
-            let mut compute_C = C.clone();
+            let mut independent_C = C.clone();
             let mut index_ci = ci;
 
-            for structure_c in compute_C.iter_mut() {
+            for structure_c in independent_C.iter_mut() {
                 if let Structure::Element(ref mut cell_content) = structure_c {
                     let digit = index_ci % C_domain_size;
                     index_ci /= C_domain_size;
@@ -96,10 +96,10 @@ fn main() {
             }
 
             (0..total_combinations_Ec).into_par_iter().for_each(|eci| {
-                let mut compute_Ec = Ec.clone();
+                let mut independent_Ec = Ec.clone();
                 let mut index_eci = eci;
 
-                for structure_ec in compute_Ec.iter_mut() {
+                for structure_ec in independent_Ec.iter_mut() {
                     if let Structure::Element(ref mut ec_content) = structure_ec {
                         let digit = index_eci % Ec_domain_size;
                         index_eci /= Ec_domain_size;
@@ -108,8 +108,8 @@ fn main() {
                 }
 
                 'board_reset: for graph in G.iter() {
-                    let mut compute_Ep = Ep.clone();
-                    for structure_ep in compute_Ep.iter_mut() {
+                    let mut independent_Ep = Ep.clone();
+                    for structure_ep in independent_Ep.iter_mut() {
                         {
                             if let Structure::Composition(ref g_content) = graph {
                                 if g_content
@@ -129,15 +129,17 @@ fn main() {
                         }
                     }
 
-                    for cell in compute_C.iter() {
+                    for cell in independent_C.iter() {
                         if let Structure::Element(ref cell_content) = cell {
-                            if cell_content.val.unwrap() != cycle(cell, &compute_Ep, &board_size) {
+                            if cell_content.val.unwrap()
+                                != cycle(cell, &independent_Ep, &board_size)
+                            {
                                 continue 'board_reset;
                             }
                         }
                     }
-                    println!("{:?}", compute_C);
-                    println!("{:?}", compute_Ep);
+                    println!("{:?}", independent_C);
+                    println!("{:?}", independent_Ep);
                     println!("");
                 }
             })

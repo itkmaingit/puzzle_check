@@ -41,7 +41,7 @@ const black: i32 = 1;
 
 fn main() {
     let board_size: BoardSize = BoardSize(n, m);
-    let LOOP_NUMBERS = 100000;
+    let LOOP_NUMBERS = 1000;
     let pb = ProgressBar::new(LOOP_NUMBERS);
     pb.set_style(
         ProgressStyle::default_bar()
@@ -121,12 +121,12 @@ fn main() {
         ];
         let mut power_black_A = random_subset_with_validation(&black_A, &board_validation_fn);
 
-        let mut computed_C = C.clone();
+        let mut independent_C = C.clone();
 
         for black_area in power_black_A.iter_mut() {
             if let Structure::Composition(ref mut black_area_content) = black_area {
                 for cell in black_area_content.entity.iter() {
-                    for compare_cell in computed_C.iter_mut() {
+                    for compare_cell in independent_C.iter_mut() {
                         if compare_structures(cell, &compare_cell) {
                             if let Structure::Element(ref mut compare_cell_content) = compare_cell {
                                 compare_cell_content.val = Some(black);
@@ -138,10 +138,10 @@ fn main() {
         }
         if next {
             (0..total_combinations_P).into_par_iter().for_each(|pi| {
-                let mut compute_P = P.clone();
+                let mut independent_P = P.clone();
                 let mut index_pi = pi;
 
-                for structure_p in compute_P.iter_mut() {
+                for structure_p in independent_P.iter_mut() {
                     if let Structure::Element(ref mut point) = structure_p {
                         let digit = index_pi % P_domain_size;
                         index_pi /= P_domain_size;
@@ -150,10 +150,10 @@ fn main() {
                 }
 
                 (0..total_combinations_Ep).into_par_iter().for_each(|epi| {
-                    let mut compute_Ep = Ep.clone();
+                    let mut independent_Ep = Ep.clone();
                     let mut index_epi = epi;
 
-                    for structure_ep in compute_Ep.iter_mut() {
+                    for structure_ep in independent_Ep.iter_mut() {
                         if let Structure::Element(ref mut ep_content) = structure_ep {
                             let digit = index_epi % Ep_domain_size;
                             index_epi /= Ep_domain_size;
@@ -162,10 +162,10 @@ fn main() {
                     }
 
                     (0..total_combinations_Ec).into_par_iter().for_each(|eci| {
-                        let mut compute_Ec = Ec.clone();
+                        let mut independent_Ec = Ec.clone();
                         let mut index_eci = eci;
 
-                        for structure_ec in compute_Ec.iter_mut() {
+                        for structure_ec in independent_Ec.iter_mut() {
                             if let Structure::Element(ref mut ec_content) = structure_ec {
                                 let digit = index_eci % Ec_domain_size;
                                 index_eci /= Ec_domain_size;
@@ -178,7 +178,7 @@ fn main() {
                             let mut black_numbers = 0;
                             if let Structure::Composition(ref room_A_content) = room_A {
                                 for cell in room_A_content.entity.iter() {
-                                    for compare_cell in computed_C.iter() {
+                                    for compare_cell in independent_C.iter() {
                                         if compare_structures(cell, compare_cell) {
                                             if let Structure::Element(ref compare_cell_content) =
                                                 compare_cell

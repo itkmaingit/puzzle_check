@@ -136,10 +136,10 @@ fn main() {
         }
         if next {
             (0..total_combinations_P).into_par_iter().for_each(|pi| {
-                let mut compute_P = P.clone();
+                let mut independent_P = P.clone();
                 let mut index_pi = pi;
 
-                for structure_p in compute_P.iter_mut() {
+                for structure_p in independent_P.iter_mut() {
                     if let Structure::Element(ref mut point) = structure_p {
                         let digit = index_pi % P_domain_size;
                         index_pi /= P_domain_size;
@@ -147,10 +147,10 @@ fn main() {
                     }
                 }
                 (0..total_combinations_C).into_par_iter().for_each(|ci| {
-                    let mut compute_C = C.clone();
+                    let mut independent_C = C.clone();
                     let mut index_ci = ci;
 
-                    for structure_c in compute_C.iter_mut() {
+                    for structure_c in independent_C.iter_mut() {
                         if let Structure::Element(ref mut c_content) = structure_c {
                             let digit = index_ci % C_domain_size;
                             index_ci /= C_domain_size;
@@ -158,10 +158,10 @@ fn main() {
                         }
                     }
                     (0..total_combinations_Ep).into_par_iter().for_each(|epi| {
-                        let mut compute_Ep = Ep.clone();
+                        let mut independent_Ep = Ep.clone();
                         let mut index_epi = epi;
 
-                        for structure_ep in compute_Ep.iter_mut() {
+                        for structure_ep in independent_Ep.iter_mut() {
                             if let Structure::Element(ref mut ep_content) = structure_ep {
                                 let digit = index_epi % Ep_domain_size;
                                 index_epi /= Ep_domain_size;
@@ -170,10 +170,10 @@ fn main() {
                         }
 
                         (0..total_combinations_Ec).into_par_iter().for_each(|eci| {
-                            let mut compute_Ec = Ec.clone();
+                            let mut independent_Ec = Ec.clone();
                             let mut index_eci = eci;
 
-                            for structure_ec in compute_Ec.iter_mut() {
+                            for structure_ec in independent_Ec.iter_mut() {
                                 if let Structure::Element(ref mut ec_content) = structure_ec {
                                     let digit = index_eci % Ec_domain_size;
                                     index_eci /= Ec_domain_size;
