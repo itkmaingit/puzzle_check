@@ -1,11 +1,13 @@
 use std::fmt;
 
+// 元素ではない構造体
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Composition {
     pub val: Option<i32>,
     pub entity: Vec<Structure>,
 }
 
+// 元素
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Element {
     pub val: Option<i32>,
@@ -13,12 +15,14 @@ pub struct Element {
     pub coor: Coordinate,
 }
 
+// 構造体enum
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum Structure {
     Composition(Composition),
     Element(Element),
 }
 
+// 元素の属性
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum Attribute {
     P,
@@ -29,12 +33,15 @@ pub enum Attribute {
     Vc,
 }
 
+// 元素の座標
 #[derive(Clone, PartialEq, Hash, Eq)]
 pub struct Coordinate(pub i32, pub i32);
 
+// 盤面のサイズ
 pub struct BoardSize(pub i32, pub i32);
 
 impl Element {
+    // コンストラクタ、初期解はNone
     pub fn new(attr: Attribute, coor: Coordinate) -> Self {
         Element {
             val: None,
@@ -45,28 +52,23 @@ impl Element {
 }
 
 impl Composition {
+    // コンストラクタ、初期解はNone
     pub fn new(entity: Vec<Structure>) -> Self {
         Composition { val: None, entity }
     }
 }
 
-impl Element {
-    pub fn solution(&self) -> i32 {
-        return self.val.unwrap();
-    }
-}
+//TODO: StructureにCompositon, Elementに対してそれぞれvalのsetter, getterの実装
 
-impl Composition {
-    pub fn solution(&self) -> i32 {
-        return self.val.unwrap();
-    }
-}
-
+// 座標を操るうえで便利なメソッド
 impl Coordinate {
+    // 差分だけ動かす
     fn change_coordinate(&mut self, coor: Coordinate) {
         self.0 += coor.0;
         self.1 += coor.1;
     }
+
+    // 両隣の座標を返す、board_sizeを超える場合があることに注意
     pub fn horizon_points(&self) -> (Coordinate, Coordinate) {
         let left = self.clone();
         let mut right = self.clone();
@@ -74,6 +76,7 @@ impl Coordinate {
         return (left, right);
     }
 
+    // 上下の座標を返す、board_sizeを超える場合があることに注意
     pub fn vertical_points(&self) -> (Coordinate, Coordinate) {
         let top = self.clone();
         let mut bottom = self.clone();
@@ -92,7 +95,9 @@ impl fmt::Debug for Structure {
     }
 }
 
-// CompositionのDebugトレイトを実装
+// ---------------------------------------------------------------------------------------------------------------------
+// ↓ dataclassのDebug trait の実装
+
 impl fmt::Debug for Composition {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "val: {:?}, length: {:?} {{", self.val, self.entity.len())?;
@@ -106,14 +111,12 @@ impl fmt::Debug for Composition {
     }
 }
 
-// ElementのDebugトレイトを実装
 impl fmt::Debug for Element {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "({:?}{:?}, {:?})", self.attr, self.coor, self.val)
     }
 }
 
-// AttributeのDebugトレイトを実装
 impl fmt::Debug for Attribute {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -127,7 +130,6 @@ impl fmt::Debug for Attribute {
     }
 }
 
-// CoordinateのDebugトレイトを実装
 impl fmt::Debug for Coordinate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "({},{})", self.0, self.1)

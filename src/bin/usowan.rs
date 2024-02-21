@@ -2,31 +2,22 @@
 // name: usowan
 
 use indicatif::{ProgressBar, ProgressStyle};
-use puzzle_check::common::predicates::{is_not_rectangle, is_rectangle};
+use puzzle_check::common::combine::combine;
+use puzzle_check::common::initialize::initialize;
+use puzzle_check::common::operate_structures::OperateStructure;
+use puzzle_check::specific::structure_functions::StructureFn;
+
+use puzzle_check::common::dataclass::{
+    Attribute, BoardSize, Composition, Coordinate, Element, Structure,
+};
 use puzzle_check::common::relationship::{relationship, Relationship, D, H, M, V};
-use puzzle_check::common::{
-    dataclass::{Attribute, BoardSize, Composition, Coordinate, Element, Structure},
-    function::add_up_structures,
-};
-use puzzle_check::specific::board::non_validation;
-use puzzle_check::specific::graph::only_cycle;
-use puzzle_check::{
-    common::combine::{combine, non_cutoff, ValidationFn},
-    specific::board::BoardValidationFn,
-};
-use puzzle_check::{
-    common::function::{
-        adjacent, compare_structures, cycle, extract_random_structure, is_side, power_set,
-        progress_size, random_subset_with_validation,
-    },
-    specific::board::{
-        non_diagonal_structures, non_horizontal_structures, non_matching_structures,
-        non_vertical_structures,
-    },
-};
-use puzzle_check::{common::initialize::initialize, specific::board};
+use puzzle_check::specific::board_validation::{BoardValidation, BoardValidationFn};
+use puzzle_check::specific::cutoff::{Cutoff, CutoffFn};
+
 use rayon::prelude::*;
 use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 // random_subsetが終了しないためサイズ制限を導入
 fn size_limitation(area: &Structure) -> bool {
@@ -37,11 +28,11 @@ fn size_limitation(area: &Structure) -> bool {
     }
 }
 
-pub fn non_division(area: &Structure) -> bool {
+fn non_division(area: &Structure) -> bool {
     let mut side_cell_counts = 0;
     if let Structure::Composition(ref area_content) = area {
         for cell in area_content.entity.iter() {
-            if is_side(cell, &board_size) {
+            if StructureFn::is_side(cell, &board_size) {
                 side_cell_counts += 1;
             }
         }
@@ -72,7 +63,7 @@ fn main() {
     // ----------------------------------------------------------------------
     let R: Vec<Relationship> = vec![D];
     let not_R: Vec<Relationship> = vec![M];
-    let cutoff_functions_room: Vec<ValidationFn> = vec![size_limitation, non_division];
+    let cutoff_functions_room: Vec<CutoffFn> = vec![size_limitation, non_division];
     let A = combine(R, not_R, &C, &cutoff_functions_room);
 
     // combineの確認---------------------------
@@ -105,13 +96,13 @@ fn main() {
         let mut power_A: Vec<Structure> = vec![];
 
         let board_validation_fn: Vec<BoardValidationFn> = vec![
-            non_matching_structures,
-            non_horizontal_structures,
-            non_vertical_structures,
-            non_diagonal_structures,
+            BoardValidation::non_matching_structures,
+            BoardValidation::non_horizontal_structures,
+            BoardValidation::non_vertical_structures,
+            BoardValidation::non_diagonal_structures,
         ];
 
-        let power_A = random_subset_with_validation(&A, &board_validation_fn);
+        let power_A = OperateStructure::random_subset_with_validation(&A, &board_validation_fn);
 
         let mut independent_C = C.clone();
         let readonly_C = C.clone();
@@ -121,20 +112,18 @@ fn main() {
             for area in power_A.iter() {
                 if let Structure::Composition(ref area_content) = area {
                     for black_cell in area_content.entity.iter() {
-                        if compare_structures(cell, black_cell) {
+                        if OperateStructure::compare_structures(cell, black_cell) {
                             continue 'outer;
                         }
                     }
                 }
             }
-            for adjacent in adjacent(cell, &readonly_C) {
+            for adjacent in StructureFn::adjacent(cell, &readonly_C) {
                 for area in power_A.iter() {
                     if let Structure::Composition(ref area_content) = area {
-                        if area_content
-                            .entity
-                            .iter()
-                            .any(|black_cell| compare_structures(&adjacent, black_cell))
-                        {
+                        if area_content.entity.iter().any(|black_cell| {
+                            OperateStructure::compare_structures(&adjacent, black_cell)
+                        }) {
                             value += 1;
                         }
                     }

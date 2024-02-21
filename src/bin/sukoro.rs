@@ -4,25 +4,22 @@
 // sizeは基本的にn*m/3>=なのでそれに制限
 
 use indicatif::{ProgressBar, ProgressStyle};
-use puzzle_check::common::function::{
-    adjacent, compare_structures, cycle, extract_random_structure, power_set, progress_size,
-    random_subset_with_validation,
-};
+use puzzle_check::common::combine::combine;
 use puzzle_check::common::initialize::initialize;
-use puzzle_check::common::predicates::is_rectangle;
+use puzzle_check::common::operate_structures::OperateStructure;
+use puzzle_check::specific::structure_functions::StructureFn;
+
+use puzzle_check::common::dataclass::{
+    Attribute, BoardSize, Composition, Coordinate, Element, Structure,
+};
 use puzzle_check::common::relationship::{relationship, Relationship, D, H, M, V};
-use puzzle_check::common::{
-    dataclass::{Attribute, BoardSize, Composition, Coordinate, Element, Structure},
-    function::add_up_structures,
-};
-use puzzle_check::specific::board::non_validation;
-use puzzle_check::specific::graph::only_cycle;
-use puzzle_check::{
-    common::combine::{combine, non_cutoff, ValidationFn},
-    specific::board::BoardValidationFn,
-};
+use puzzle_check::specific::board_validation::{BoardValidation, BoardValidationFn};
+use puzzle_check::specific::cutoff::{Cutoff, CutoffFn};
+
 use rayon::prelude::*;
 use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 const n: i32 = 4;
 const m: i32 = 4;
@@ -44,7 +41,7 @@ fn main() {
     // ----------------------------------------------------------------------
     let R: Vec<Relationship> = vec![H, V];
     let not_R: Vec<Relationship> = vec![M];
-    let cutoff_functions: Vec<ValidationFn> = vec![size_limitation];
+    let cutoff_functions: Vec<CutoffFn> = vec![size_limitation];
     let A = combine(R, not_R, &C, &cutoff_functions);
 
     // combineの確認---------------------------
@@ -54,7 +51,7 @@ fn main() {
     // }
     // ---------------------------------------
 
-    let board_validation_functions: Vec<BoardValidationFn> = vec![non_validation];
+    let board_validation_functions: Vec<BoardValidationFn> = vec![BoardValidation::non_validation];
 
     let max_a = board_size.0 * board_size.1 / 2 as i32;
 
@@ -116,8 +113,10 @@ fn main() {
                     if let Structure::Composition(ref area_content) = area {
                         for cell in &area_content.entity {
                             for compare_cell in independent_C.iter() {
-                                if compare_structures(&cell, compare_cell) {
-                                    if !B.iter().any(|x| compare_structures(x, compare_cell)) {
+                                if OperateStructure::compare_structures(&cell, compare_cell) {
+                                    if !B.iter().any(|x| {
+                                        OperateStructure::compare_structures(x, compare_cell)
+                                    }) {
                                         B.push(compare_cell.clone());
                                     }
                                 }
@@ -127,12 +126,16 @@ fn main() {
 
                     for compare_cell in independent_C.iter_mut() {
                         let iindependent_C = C.clone();
-                        if B.iter().any(|x| compare_structures(&compare_cell, x)) {
-                            let adjacents = adjacent(&compare_cell, &iindependent_C);
+                        if B.iter()
+                            .any(|x| OperateStructure::compare_structures(&compare_cell, x))
+                        {
+                            let adjacents = StructureFn::adjacent(&compare_cell, &iindependent_C);
 
                             let mut val = 0;
                             for adjacent in adjacents {
-                                if B.iter().any(|x| compare_structures(&adjacent, x)) {
+                                if B.iter()
+                                    .any(|x| OperateStructure::compare_structures(&adjacent, x))
+                                {
                                     val += 1
                                 }
                             }
@@ -146,7 +149,7 @@ fn main() {
                     'outer: for cell in independent_C.iter() {
                         if let Structure::Element(ref cell_content) = cell {
                             if cell_content.val != None {
-                                for adjacent in adjacent(&cell, &independent_C) {
+                                for adjacent in StructureFn::adjacent(&cell, &independent_C) {
                                     if let Structure::Element(ref adjacent_content) = adjacent {
                                         if adjacent_content.val != None {
                                             if cell_content.val.unwrap()

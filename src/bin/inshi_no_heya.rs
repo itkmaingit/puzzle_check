@@ -4,23 +4,19 @@
 //長方形のサイズは現実的にsqrt(n*m)程度なのでcut-off
 
 use indicatif::{ProgressBar, ProgressStyle};
-use puzzle_check::common::function::{
-    all_different, compare_structures, cycle, extract_contains_structures,
-    extract_random_structure, power_set, progress_size, random_subset_with_validation,
-};
+use puzzle_check::common::combine::combine;
 use puzzle_check::common::initialize::initialize;
-use puzzle_check::common::predicates::is_rectangle;
+use puzzle_check::common::operate_structures::OperateStructure;
+use puzzle_check::specific::predicates::Predicates;
+use puzzle_check::specific::structure_functions::StructureFn;
+
+use puzzle_check::common::dataclass::{
+    Attribute, BoardSize, Composition, Coordinate, Element, Structure,
+};
 use puzzle_check::common::relationship::{relationship, Relationship, D, H, M, V};
-use puzzle_check::common::{
-    dataclass::{Attribute, BoardSize, Composition, Coordinate, Element, Structure},
-    function::add_up_structures,
-};
-use puzzle_check::specific::board::non_validation;
-use puzzle_check::specific::graph::only_cycle;
-use puzzle_check::{
-    common::combine::{combine, non_cutoff, ValidationFn},
-    specific::board::BoardValidationFn,
-};
+use puzzle_check::specific::board_validation::{BoardValidation, BoardValidationFn};
+use puzzle_check::specific::cutoff::{Cutoff, CutoffFn};
+
 use rayon::prelude::*;
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
@@ -53,13 +49,13 @@ fn main() {
     // ----------------------------------------------------------------------
     let room_R: Vec<Relationship> = vec![H, V];
     let not_room_R: Vec<Relationship> = vec![M];
-    let cutoff_functions_for_room: Vec<ValidationFn> = vec![is_rectangle];
+    let cutoff_functions_for_room: Vec<CutoffFn> = vec![Cutoff::is_rectangle];
     let row_R: Vec<Relationship> = vec![H];
     let not_row_R: Vec<Relationship> = vec![D, V, M];
     let col_R: Vec<Relationship> = vec![V];
     let not_col_R: Vec<Relationship> = vec![H, D, M];
-    let cutoff_functions_for_row: Vec<ValidationFn> = vec![size_limitation_n];
-    let cutoff_functions_for_col: Vec<ValidationFn> = vec![size_limitation_n];
+    let cutoff_functions_for_row: Vec<CutoffFn> = vec![size_limitation_n];
+    let cutoff_functions_for_col: Vec<CutoffFn> = vec![size_limitation_n];
     let room_A = combine(room_R, not_room_R, &C, &cutoff_functions_for_room);
     let row_A = combine(row_R, not_row_R, &C, &cutoff_functions_for_row);
     let col_A = combine(col_R, not_col_R, &C, &cutoff_functions_for_col);
@@ -71,7 +67,7 @@ fn main() {
     // }
     // ---------------------------------------
 
-    let board_validation_functions: Vec<BoardValidationFn> = vec![non_validation];
+    let board_validation_functions: Vec<BoardValidationFn> = vec![BoardValidation::non_validation];
 
     let max_a = 99999;
 
@@ -103,11 +99,11 @@ fn main() {
                     break 'inner;
                 }
             }
-            let new_area = extract_random_structure(&room_A);
+            let new_area = OperateStructure::extract_random_structure(&room_A);
             if relationship(&new_area, &B, M) {
                 continue 'inner;
             }
-            B = add_up_structures(&B, &new_area);
+            B = OperateStructure::add_up_structures(&B, &new_area);
             power_A.push(new_area);
         }
         (0..total_combinations_P).into_par_iter().for_each(|pi| {
@@ -159,13 +155,13 @@ fn main() {
                         }
                         let mut independent_power_A = power_A.clone();
                         'inner: for row in row_A.iter() {
-                            if !all_different(&independent_C, row) || !success {
+                            if !Predicates::all_different(&independent_C, row) || !success {
                                 success = false;
                                 break 'inner;
                             }
                         }
                         'inner: for col in col_A.iter() {
-                            if !all_different(&independent_C, col) || !success {
+                            if !Predicates::all_different(&independent_C, col) || !success {
                                 success = false;
                                 break 'inner;
                             }
@@ -173,7 +169,10 @@ fn main() {
                         if success {
                             for area in independent_power_A.iter_mut() {
                                 let mut value = 1;
-                                let contains = extract_contains_structures(&independent_C, &area);
+                                let contains = OperateStructure::extract_contains_structures(
+                                    &independent_C,
+                                    &area,
+                                );
                                 for element in contains.iter() {
                                     if let Structure::Element(ref element_content) = element {
                                         value *= element_content.val.unwrap();

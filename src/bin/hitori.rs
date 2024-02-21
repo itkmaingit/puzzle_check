@@ -2,32 +2,19 @@
 // name: hitori
 
 use indicatif::{ProgressBar, ProgressStyle};
+use puzzle_check::common::combine::combine;
+use puzzle_check::common::initialize::initialize;
+use puzzle_check::common::operate_structures::OperateStructure;
+use puzzle_check::specific::predicates::Predicates;
+use puzzle_check::specific::structure_functions::StructureFn;
+
+use puzzle_check::common::dataclass::{
+    Attribute, BoardSize, Composition, Coordinate, Element, Structure,
+};
 use puzzle_check::common::relationship::{relationship, Relationship, D, H, M, V};
-use puzzle_check::common::{
-    dataclass::{Attribute, BoardSize, Composition, Coordinate, Element, Structure},
-    function::{add_up_structures, subtract_structures},
-};
-use puzzle_check::common::{
-    function::all_different,
-    predicates::{is_not_rectangle, is_rectangle},
-};
-use puzzle_check::specific::board::non_validation;
-use puzzle_check::specific::graph::only_cycle;
-use puzzle_check::{
-    common::combine::{combine, non_cutoff, ValidationFn},
-    specific::board::BoardValidationFn,
-};
-use puzzle_check::{
-    common::function::{
-        adjacent, compare_structures, cycle, extract_random_structure, is_side, power_set,
-        progress_size, random_subset_with_validation,
-    },
-    specific::board::{
-        non_diagonal_structures, non_horizontal_structures, non_matching_structures,
-        non_vertical_structures,
-    },
-};
-use puzzle_check::{common::initialize::initialize, specific::board};
+use puzzle_check::specific::board_validation::{BoardValidation, BoardValidationFn};
+use puzzle_check::specific::cutoff::{Cutoff, CutoffFn};
+
 use rayon::prelude::*;
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
@@ -53,7 +40,7 @@ pub fn non_division(area: &Structure) -> bool {
     let mut side_cell_counts = 0;
     if let Structure::Composition(ref area_content) = area {
         for cell in area_content.entity.iter() {
-            if is_side(cell, &board_size) {
+            if StructureFn::is_side(cell, &board_size) {
                 side_cell_counts += 1;
             }
         }
@@ -89,8 +76,8 @@ fn main() {
     let not_row_R: Vec<Relationship> = vec![D, V, M];
     let col_R: Vec<Relationship> = vec![V];
     let not_col_R: Vec<Relationship> = vec![H, D, M];
-    let cutoff_functions: Vec<ValidationFn> = vec![size_limitation, non_division];
-    let cutoff_functions_for_different: Vec<ValidationFn> = vec![size_limitation_n];
+    let cutoff_functions: Vec<CutoffFn> = vec![size_limitation, non_division];
+    let cutoff_functions_for_different: Vec<CutoffFn> = vec![size_limitation_n];
     let A = combine(R, not_R, &C, &cutoff_functions);
     let row_A = combine(row_R, not_row_R, &C, &cutoff_functions_for_different);
     let col_A = combine(col_R, not_col_R, &C, &cutoff_functions_for_different);
@@ -129,18 +116,18 @@ fn main() {
         let mut power_A: Vec<Structure> = vec![];
 
         let board_validation_fn: Vec<BoardValidationFn> = vec![
-            non_matching_structures,
-            non_horizontal_structures,
-            non_vertical_structures,
-            non_diagonal_structures,
+            BoardValidation::non_matching_structures,
+            BoardValidation::non_horizontal_structures,
+            BoardValidation::non_vertical_structures,
+            BoardValidation::non_diagonal_structures,
         ];
 
-        let power_A = random_subset_with_validation(&A, &board_validation_fn);
+        let power_A = OperateStructure::random_subset_with_validation(&A, &board_validation_fn);
 
         let readonly_C = C.clone();
         let mut pseudo_C = Structure::Composition(Composition::new(readonly_C));
         for area in power_A.iter() {
-            pseudo_C = subtract_structures(&pseudo_C, area);
+            pseudo_C = OperateStructure::subtract_structures(&pseudo_C, area);
         }
 
         (0..total_combinations_P).into_par_iter().for_each(|pi| {
@@ -195,12 +182,12 @@ fn main() {
                                     }
                                 }
                                 for row in row_A.iter() {
-                                    if !all_different(&independent_C.entity, row) {
+                                    if !Predicates::all_different(&independent_C.entity, row) {
                                         success = false;
                                     }
                                 }
                                 for col in col_A.iter() {
-                                    if !all_different(&independent_C.entity, col) {
+                                    if !Predicates::all_different(&independent_C.entity, col) {
                                         success = false;
                                     }
                                 }

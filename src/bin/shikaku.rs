@@ -4,25 +4,22 @@
 //長方形のサイズは現実的にn*m/2程度なのでcut-off
 
 use indicatif::{ProgressBar, ProgressStyle};
-use puzzle_check::common::function::{
-    compare_structures, cycle, extract_random_structure, power_set, progress_size,
-    random_subset_with_validation,
-};
+use puzzle_check::common::combine::combine;
 use puzzle_check::common::initialize::initialize;
-use puzzle_check::common::predicates::is_rectangle;
+use puzzle_check::common::operate_structures::OperateStructure;
+use puzzle_check::specific::structure_functions::StructureFn;
+
+use puzzle_check::common::dataclass::{
+    Attribute, BoardSize, Composition, Coordinate, Element, Structure,
+};
 use puzzle_check::common::relationship::{relationship, Relationship, D, H, M, V};
-use puzzle_check::common::{
-    dataclass::{Attribute, BoardSize, Composition, Coordinate, Element, Structure},
-    function::add_up_structures,
-};
-use puzzle_check::specific::board::non_validation;
-use puzzle_check::specific::graph::only_cycle;
-use puzzle_check::{
-    common::combine::{combine, non_cutoff, ValidationFn},
-    specific::board::BoardValidationFn,
-};
+use puzzle_check::specific::board_validation::{BoardValidation, BoardValidationFn};
+use puzzle_check::specific::cutoff::{Cutoff, CutoffFn};
+
 use rayon::prelude::*;
 use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 const n: i32 = 4;
 const m: i32 = 4;
@@ -42,7 +39,7 @@ fn main() {
     // ----------------------------------------------------------------------
     let R: Vec<Relationship> = vec![H, V];
     let not_R: Vec<Relationship> = vec![M];
-    let cutoff_functions: Vec<ValidationFn> = vec![is_rectangle];
+    let cutoff_functions: Vec<CutoffFn> = vec![Cutoff::is_rectangle];
     let A = combine(R, not_R, &C, &cutoff_functions);
 
     // combineの確認---------------------------
@@ -52,7 +49,7 @@ fn main() {
     // }
     // ---------------------------------------
 
-    let board_validation_functions: Vec<BoardValidationFn> = vec![non_validation];
+    let board_validation_functions: Vec<BoardValidationFn> = vec![BoardValidation::non_validation];
 
     let max_a = board_size.0 * board_size.1 / 2 as i32;
 
@@ -82,11 +79,11 @@ fn main() {
                     break 'inner;
                 }
             }
-            let new_area = extract_random_structure(&A);
+            let new_area = OperateStructure::extract_random_structure(&A);
             if relationship(&new_area, &B, M) {
                 continue 'inner;
             }
-            B = add_up_structures(&B, &new_area);
+            B = OperateStructure::add_up_structures(&B, &new_area);
             power_A.push(new_area);
         }
         (0..total_combinations_P).into_par_iter().for_each(|pi| {

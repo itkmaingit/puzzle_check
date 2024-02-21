@@ -2,23 +2,17 @@
 // name: chocobanana
 
 use indicatif::{ProgressBar, ProgressStyle};
-use puzzle_check::common::function::{
-    adjacent, compare_structures, cycle, extract_random_structure, power_set, progress_size,
-    random_subset_with_validation,
-};
+use puzzle_check::common::combine::combine;
 use puzzle_check::common::initialize::initialize;
-use puzzle_check::common::predicates::{is_not_rectangle, is_rectangle};
+use puzzle_check::common::operate_structures::OperateStructure;
+
+use puzzle_check::common::dataclass::{
+    Attribute, BoardSize, Composition, Coordinate, Element, Structure,
+};
 use puzzle_check::common::relationship::{relationship, Relationship, D, H, M, V};
-use puzzle_check::common::{
-    dataclass::{Attribute, BoardSize, Composition, Coordinate, Element, Structure},
-    function::add_up_structures,
-};
-use puzzle_check::specific::board::non_validation;
-use puzzle_check::specific::graph::only_cycle;
-use puzzle_check::{
-    common::combine::{combine, non_cutoff, ValidationFn},
-    specific::board::BoardValidationFn,
-};
+use puzzle_check::specific::board_validation::{BoardValidation, BoardValidationFn};
+use puzzle_check::specific::cutoff::{Cutoff, CutoffFn};
+
 use rayon::prelude::*;
 use std::collections::HashSet;
 
@@ -42,8 +36,8 @@ fn main() {
     let white_not_R: Vec<Relationship> = vec![M];
     let black_R: Vec<Relationship> = vec![H, V];
     let black_not_R: Vec<Relationship> = vec![M];
-    let cutoff_functions_white: Vec<ValidationFn> = vec![is_not_rectangle];
-    let cutoff_functions_black: Vec<ValidationFn> = vec![is_rectangle];
+    let cutoff_functions_white: Vec<CutoffFn> = vec![Cutoff::is_not_rectangle];
+    let cutoff_functions_black: Vec<CutoffFn> = vec![Cutoff::is_rectangle];
     let white_A = combine(white_R, white_not_R, &C, &cutoff_functions_white);
     let black_A = combine(black_R, black_not_R, &C, &cutoff_functions_black);
 
@@ -59,7 +53,7 @@ fn main() {
     // }
     // ---------------------------------------
 
-    let board_validation_functions: Vec<BoardValidationFn> = vec![non_validation];
+    let board_validation_functions: Vec<BoardValidationFn> = vec![BoardValidation::non_validation];
 
     let P_domain: Vec<Option<i32>> = vec![None];
     let C_domain: Vec<Option<i32>> = vec![None];
@@ -99,7 +93,7 @@ fn main() {
             }
             let mut new_area: Structure;
             if i % 2 == 0 {
-                new_area = extract_random_structure(&white_A);
+                new_area = OperateStructure::extract_random_structure(&white_A);
                 if relationship(&new_area, &white_B, M)
                     || relationship(&new_area, &white_B, H)
                     || relationship(&new_area, &white_B, V)
@@ -107,11 +101,11 @@ fn main() {
                 {
                     continue 'inner;
                 }
-                white_B = add_up_structures(&white_B, &new_area);
-                all_B = add_up_structures(&all_B, &new_area);
+                white_B = OperateStructure::add_up_structures(&white_B, &new_area);
+                all_B = OperateStructure::add_up_structures(&all_B, &new_area);
                 power_white_A.push(new_area);
             } else {
-                new_area = extract_random_structure(&black_A);
+                new_area = OperateStructure::extract_random_structure(&black_A);
                 if relationship(&new_area, &black_B, M)
                     || relationship(&new_area, &black_B, H)
                     || relationship(&new_area, &black_B, V)
@@ -119,8 +113,8 @@ fn main() {
                 {
                     continue 'inner;
                 }
-                all_B = add_up_structures(&all_B, &new_area);
-                black_B = add_up_structures(&black_B, &new_area);
+                all_B = OperateStructure::add_up_structures(&all_B, &new_area);
+                black_B = OperateStructure::add_up_structures(&black_B, &new_area);
                 power_black_A.push(new_area);
             }
         }

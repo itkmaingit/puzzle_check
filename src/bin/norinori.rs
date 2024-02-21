@@ -2,30 +2,22 @@
 // name: norinori
 
 use indicatif::{ProgressBar, ProgressStyle};
-use puzzle_check::common::predicates::{is_not_rectangle, is_rectangle};
+use puzzle_check::common::combine::combine;
+use puzzle_check::common::initialize::initialize;
+use puzzle_check::common::operate_structures::OperateStructure;
+use puzzle_check::specific::structure_functions::StructureFn;
+
+use puzzle_check::common::dataclass::{
+    Attribute, BoardSize, Composition, Coordinate, Element, Structure,
+};
 use puzzle_check::common::relationship::{relationship, Relationship, D, H, M, V};
-use puzzle_check::common::{
-    dataclass::{Attribute, BoardSize, Composition, Coordinate, Element, Structure},
-    function::add_up_structures,
-};
-use puzzle_check::specific::board::non_validation;
-use puzzle_check::specific::graph::only_cycle;
-use puzzle_check::{
-    common::combine::{combine, non_cutoff, ValidationFn},
-    specific::board::BoardValidationFn,
-};
-use puzzle_check::{
-    common::function::{
-        adjacent, compare_structures, cycle, extract_random_structure, power_set, progress_size,
-        random_subset_with_validation,
-    },
-    specific::board::{
-        non_horizontal_structures, non_matching_structures, non_vertical_structures,
-    },
-};
-use puzzle_check::{common::initialize::initialize, specific::board};
+use puzzle_check::specific::board_validation::{BoardValidation, BoardValidationFn};
+use puzzle_check::specific::cutoff::{Cutoff, CutoffFn};
+
 use rayon::prelude::*;
 use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 fn size_limitation(area: &Structure) -> bool {
     if let Structure::Composition(ref area_content) = area {
@@ -56,8 +48,8 @@ fn main() {
     let room_not_R: Vec<Relationship> = vec![M];
     let black_R: Vec<Relationship> = vec![H, V];
     let black_not_R: Vec<Relationship> = vec![M];
-    let cutoff_functions_room: Vec<ValidationFn> = vec![non_cutoff];
-    let cutoff_functions_black: Vec<ValidationFn> = vec![size_limitation];
+    let cutoff_functions_room: Vec<CutoffFn> = vec![Cutoff::non_cutoff];
+    let cutoff_functions_black: Vec<CutoffFn> = vec![size_limitation];
     let room_A = combine(room_R, room_not_R, &C, &cutoff_functions_room);
     let black_A = combine(black_R, black_not_R, &C, &cutoff_functions_black);
 
@@ -73,7 +65,7 @@ fn main() {
     // }
     // ---------------------------------------
 
-    let board_validation_functions: Vec<BoardValidationFn> = vec![non_validation];
+    let board_validation_functions: Vec<BoardValidationFn> = vec![BoardValidation::non_validation];
 
     let P_domain: Vec<Option<i32>> = vec![None];
     let C_domain: Vec<Option<i32>> = vec![None];
@@ -106,20 +98,21 @@ fn main() {
                 }
             }
 
-            let new_area = extract_random_structure(&room_A);
+            let new_area = OperateStructure::extract_random_structure(&room_A);
 
             if relationship(&new_area, &room_B, M) {
                 continue 'inner;
             }
-            room_B = add_up_structures(&room_B, &new_area);
+            room_B = OperateStructure::add_up_structures(&room_B, &new_area);
             power_room_A.push(new_area);
         }
         let board_validation_fn: Vec<BoardValidationFn> = vec![
-            non_matching_structures,
-            non_horizontal_structures,
-            non_vertical_structures,
+            BoardValidation::non_matching_structures,
+            BoardValidation::non_horizontal_structures,
+            BoardValidation::non_vertical_structures,
         ];
-        let mut power_black_A = random_subset_with_validation(&black_A, &board_validation_fn);
+        let mut power_black_A =
+            OperateStructure::random_subset_with_validation(&black_A, &board_validation_fn);
 
         let mut independent_C = C.clone();
 
@@ -127,7 +120,7 @@ fn main() {
             if let Structure::Composition(ref mut black_area_content) = black_area {
                 for cell in black_area_content.entity.iter() {
                     for compare_cell in independent_C.iter_mut() {
-                        if compare_structures(cell, &compare_cell) {
+                        if OperateStructure::compare_structures(cell, &compare_cell) {
                             if let Structure::Element(ref mut compare_cell_content) = compare_cell {
                                 compare_cell_content.val = Some(black);
                             }
@@ -179,7 +172,8 @@ fn main() {
                             if let Structure::Composition(ref room_A_content) = room_A {
                                 for cell in room_A_content.entity.iter() {
                                     for compare_cell in independent_C.iter() {
-                                        if compare_structures(cell, compare_cell) {
+                                        if OperateStructure::compare_structures(cell, compare_cell)
+                                        {
                                             if let Structure::Element(ref compare_cell_content) =
                                                 compare_cell
                                             {

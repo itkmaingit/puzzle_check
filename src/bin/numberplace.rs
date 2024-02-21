@@ -4,27 +4,23 @@
 // disabled for combinatorial explosion
 
 use indicatif::{ProgressBar, ProgressStyle};
+use puzzle_check::common::combine::combine;
+use puzzle_check::common::initialize::initialize;
+use puzzle_check::common::operate_structures::OperateStructure;
+use puzzle_check::specific::predicates::Predicates;
+use puzzle_check::specific::structure_functions::StructureFn;
+
+use puzzle_check::common::dataclass::{
+    Attribute, BoardSize, Composition, Coordinate, Element, Structure,
+};
 use puzzle_check::common::relationship::{relationship, Relationship, D, H, M, V};
-use puzzle_check::common::{
-    dataclass::{Attribute, BoardSize, Composition, Coordinate, Element, Structure},
-    function::add_up_structures,
-};
-use puzzle_check::common::{function::all_different, initialize::initialize};
-use puzzle_check::common::{
-    function::{
-        compare_structures, cycle, extract_random_structure, power_set, progress_size,
-        random_subset_with_validation,
-    },
-    predicates::is_square,
-};
-use puzzle_check::specific::board::non_validation;
-use puzzle_check::specific::graph::only_cycle;
-use puzzle_check::{
-    common::combine::{combine, non_cutoff, ValidationFn},
-    specific::board::BoardValidationFn,
-};
+use puzzle_check::specific::board_validation::{BoardValidation, BoardValidationFn};
+use puzzle_check::specific::cutoff::{Cutoff, CutoffFn};
+
 use rayon::prelude::*;
 use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 fn size_limitation(area: &Structure) -> bool {
     if let Structure::Composition(ref area_content) = area {
@@ -56,9 +52,9 @@ fn main() {
     let not_R1: Vec<Relationship> = vec![M];
     let not_R2: Vec<Relationship> = vec![M];
     let not_R3: Vec<Relationship> = vec![M];
-    let cutoff_functions1: Vec<ValidationFn> = vec![size_limitation];
-    let cutoff_functions2: Vec<ValidationFn> = vec![size_limitation];
-    let cutoff_functions3: Vec<ValidationFn> = vec![size_limitation, is_square];
+    let cutoff_functions1: Vec<CutoffFn> = vec![size_limitation];
+    let cutoff_functions2: Vec<CutoffFn> = vec![size_limitation];
+    let cutoff_functions3: Vec<CutoffFn> = vec![size_limitation, Cutoff::is_square];
     let A1 = combine(R1, not_R1, &C, &cutoff_functions1);
     let A2 = combine(R2, not_R2, &C, &cutoff_functions2);
     let A3 = combine(R3, not_R3, &C, &cutoff_functions3);
@@ -70,7 +66,7 @@ fn main() {
     // }
     // ---------------------------------------
 
-    let board_validation_functions: Vec<BoardValidationFn> = vec![non_validation];
+    let board_validation_functions: Vec<BoardValidationFn> = vec![BoardValidation::non_validation];
 
     let P_domain: Vec<Option<i32>> = vec![None];
     let C_domain: Vec<Option<i32>> = (0..=4).map(Some).collect();
@@ -107,11 +103,11 @@ fn main() {
                     break 'inner;
                 }
             }
-            let new_area = extract_random_structure(&A3);
+            let new_area = OperateStructure::extract_random_structure(&A3);
             if relationship(&new_area, &B, M) {
                 continue 'inner;
             }
-            B = add_up_structures(&B, &new_area);
+            B = OperateStructure::add_up_structures(&B, &new_area);
             power_A.push(new_area);
         }
         if next {
@@ -167,7 +163,7 @@ fn main() {
                                 if !is_correct {
                                     break 'inner;
                                 }
-                                if !all_different(&independent_C, area) {
+                                if !Predicates::all_different(&independent_C, area) {
                                     is_correct = false;
                                 }
                             }
@@ -175,7 +171,7 @@ fn main() {
                                 if !is_correct {
                                     break 'inner;
                                 }
-                                if !all_different(&independent_C, area) {
+                                if !Predicates::all_different(&independent_C, area) {
                                     is_correct = false;
                                 }
                             }
@@ -183,7 +179,7 @@ fn main() {
                                 if !is_correct {
                                     break 'inner;
                                 }
-                                if !all_different(&independent_C, area) {
+                                if !Predicates::all_different(&independent_C, area) {
                                     is_correct = false;
                                 }
                             }

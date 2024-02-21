@@ -1,21 +1,28 @@
 use crate::common::dataclass::{Attribute, Composition, Coordinate, Element, Structure};
-use crate::common::function::{compare_structures, power_set};
 use crate::common::relationship::{relationship, Relationship, D, H, M, V};
+use crate::specific::cutoff::CutoffFn;
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 use std::collections::{HashSet, VecDeque};
 
-pub type ValidationFn = fn(&Structure) -> bool;
-
-pub fn non_cutoff(_: &Structure) -> bool {
-    return true;
-}
-
+// ---------------------------------------------------------------------------------------------------------------------
+// [overview]
+// 組成演算を行う関数
+// ---------------------------------------------------------------------------------------------------------------------
+// [params]
+// R: Vec<Relationship> - グラフ構造を展開するための隣接関係
+// not_R: Vec<Relationship> - サブグラフの内部で満たしてはいけない隣接関係
+// E: &Vec<Structure> - 構造体全てを含む集合
+// cutoff_fn: &Vec<CutoffFn> - constraintsから、現れないことが分かっている構造体をあらかじめ省くための関数列（カットオフを行わないときはnon_cutoffを入力）
+// ---------------------------------------------------------------------------------------------------------------------
+// [return]
+// Vec<Structure> - 組成演算の結果、作成される構造体全てを含む集合
+// ---------------------------------------------------------------------------------------------------------------------
 pub fn combine(
     R: Vec<Relationship>,
     not_R: Vec<Relationship>,
     E: &Vec<Structure>,
-    cutoff_fn: &Vec<ValidationFn>,
+    cutoff_fn: &Vec<CutoffFn>,
 ) -> Vec<Structure> {
     let pb_E = ProgressBar::new(2usize.pow(E.len() as u32) as u64);
     pb_E.set_style(
@@ -32,22 +39,6 @@ pub fn combine(
             .template("combine {bar:40.cyan/blue} {pos}/{len} {percent}% {eta}")
             .unwrap(),
     );
-
-    // let hp12 = Structure::Element(Element::new(Attribute::Hp, Coordinate(1, 2)));
-    // let hp21 = Structure::Element(Element::new(Attribute::Hp, Coordinate(2, 1)));
-    // let hp31 = Structure::Element(Element::new(Attribute::Hp, Coordinate(3, 1)));
-    // let hp32 = Structure::Element(Element::new(Attribute::Hp, Coordinate(3, 2)));
-    // let vp12 = Structure::Element(Element::new(Attribute::Vp, Coordinate(1, 2)));
-    // let vp13 = Structure::Element(Element::new(Attribute::Vp, Coordinate(1, 3)));
-    // let vp21 = Structure::Element(Element::new(Attribute::Vp, Coordinate(2, 1)));
-    // let vp23 = Structure::Element(Element::new(Attribute::Vp, Coordinate(2, 3)));
-
-    // let entity = vec![hp12, hp21, hp31, hp32, vp12, vp13, vp21, vp23];
-
-    // let test_structure = Structure::Composition(Composition {
-    //     val: None,
-    //     entity: entity,
-    // });
 
     // 並列化処理のためにrayonのpar_iterを使用
     let result: Vec<Structure> = power_E
@@ -103,7 +94,7 @@ pub fn combine(
                 val: None,
                 entity: e.clone(),
             });
-            if !all_are_connected(&s, &R) {
+            if !is_connected_graph(&s, &R) {
                 return None;
             }
 
@@ -121,7 +112,18 @@ pub fn combine(
     return result;
 }
 
-fn all_are_connected(structure: &Structure, R: &Vec<Relationship>) -> bool {
+// ---------------------------------------------------------------------------------------------------------------------
+// [overview]
+// 構造体が連結グラフであることを保証する関数(BFS)
+// ---------------------------------------------------------------------------------------------------------------------
+// [params]
+// structure: &Structure - チェックしたい構造体
+// R: &Vec<Relationship> - 満たすべき隣接関係
+// ---------------------------------------------------------------------------------------------------------------------
+// [return]
+// bool - 連結グラフであればtrue
+// ---------------------------------------------------------------------------------------------------------------------
+fn is_connected_graph(structure: &Structure, R: &Vec<Relationship>) -> bool {
     if let Structure::Composition(ref composition) = structure {
         let mut visited: HashSet<Structure> = HashSet::new();
         let mut queue: VecDeque<Structure> = VecDeque::new();
@@ -144,4 +146,42 @@ fn all_are_connected(structure: &Structure, R: &Vec<Relationship>) -> bool {
         return visited.len() == composition.entity.len();
     }
     unreachable!();
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// [overview]
+// 任意の配列から冪集合を作成する関数
+// ---------------------------------------------------------------------------------------------------------------------
+// [params]
+// set: &[T] - 部分集合を作成したい配列
+// pb: indicatif::ProgressBar - 計算量が簡単に爆発しうるので、プログレスバーを入力しておく
+// ---------------------------------------------------------------------------------------------------------------------
+// [return]
+// bool - 作成された部分集合
+// ---------------------------------------------------------------------------------------------------------------------
+pub fn power_set<T: Clone + Send + Sync>(set: &[T], pb: &ProgressBar) -> Vec<Vec<T>> {
+    if set.is_empty() {
+        return vec![Vec::new()];
+    }
+
+    // 最初の要素を取り除いた残りのセット
+    let tail = &set[1..];
+
+    // 残りのセットに対する冪集合を再帰的に計算
+    let tail_subsets = power_set(tail, pb);
+
+    // 最初の要素
+    let head = &set[0];
+
+    // 残りのセットの冪集合の各サブセットに対して、
+    // 最初の要素を含むバージョンと含まないバージョンの両方を生成
+    tail_subsets
+        .into_par_iter()
+        .flat_map(|subset| {
+            let mut with_head = subset.clone();
+            with_head.push(head.clone());
+            pb.inc(1);
+            vec![subset, with_head]
+        })
+        .collect()
 }

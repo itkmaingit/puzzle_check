@@ -2,25 +2,22 @@
 // name: chocobanana
 
 use indicatif::{ProgressBar, ProgressStyle};
-use puzzle_check::common::function::{
-    adjacent, compare_structures, cycle, extract_random_structure, power_set, progress_size,
-    random_subset_with_validation,
-};
+use puzzle_check::common::combine::combine;
 use puzzle_check::common::initialize::initialize;
-use puzzle_check::common::predicates::{is_not_rectangle, is_rectangle};
+use puzzle_check::common::operate_structures::OperateStructure;
+use puzzle_check::specific::structure_functions::StructureFn;
+
+use puzzle_check::common::dataclass::{
+    Attribute, BoardSize, Composition, Coordinate, Element, Structure,
+};
 use puzzle_check::common::relationship::{relationship, Relationship, D, H, M, V};
-use puzzle_check::common::{
-    dataclass::{Attribute, BoardSize, Composition, Coordinate, Element, Structure},
-    function::add_up_structures,
-};
-use puzzle_check::specific::board::non_validation;
-use puzzle_check::specific::graph::only_line;
-use puzzle_check::{
-    common::combine::{combine, non_cutoff, ValidationFn},
-    specific::board::BoardValidationFn,
-};
+use puzzle_check::specific::board_validation::{BoardValidation, BoardValidationFn};
+use puzzle_check::specific::cutoff::{Cutoff, CutoffFn};
+
 use rayon::prelude::*;
 use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 const n: i32 = 4;
 const m: i32 = 4;
@@ -40,7 +37,7 @@ fn main() {
     // ----------------------------------------------------------------------
     let R: Vec<Relationship> = vec![H, V, D];
     let not_R: Vec<Relationship> = vec![M];
-    let cutoff_functions: Vec<ValidationFn> = vec![only_line];
+    let cutoff_functions: Vec<CutoffFn> = vec![Cutoff::only_line];
     let L = combine(R, not_R, &Ec, &cutoff_functions);
 
     // combineの確認---------------------------
@@ -81,7 +78,7 @@ fn main() {
             }
             let mut new_line: Structure;
 
-            new_line = extract_random_structure(&L);
+            new_line = OperateStructure::extract_random_structure(&L);
             if relationship(&new_line, &B, M)
                 || relationship(&new_line, &B, H)
                 || relationship(&new_line, &B, V)
@@ -89,7 +86,7 @@ fn main() {
             {
                 continue 'inner;
             }
-            B = add_up_structures(&B, &new_line);
+            B = OperateStructure::add_up_structures(&B, &new_line);
             power_L.push(new_line);
         }
         let mut independent_Ec = Ec.clone();
@@ -98,7 +95,7 @@ fn main() {
                 line_content.val = Some(i as i32);
                 for edge in line_content.entity.iter() {
                     for compare_edge in independent_Ec.iter_mut() {
-                        if compare_structures(edge, &compare_edge) {
+                        if OperateStructure::compare_structures(edge, &compare_edge) {
                             if let Structure::Element(ref mut compare_edge_content) = compare_edge {
                                 compare_edge_content.val = Some(1);
                             }

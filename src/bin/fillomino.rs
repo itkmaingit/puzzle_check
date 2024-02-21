@@ -4,22 +4,15 @@
 // Cのdomainは現実的に{1..sqrt(n*m)}のために制限
 
 use indicatif::{ProgressBar, ProgressStyle};
-use puzzle_check::common::function::{
-    compare_structures, cycle, extract_random_structure, power_set, progress_size,
-    random_subset_with_validation,
+use puzzle_check::common::combine::combine;
+use puzzle_check::common::dataclass::{
+    Attribute, BoardSize, Composition, Coordinate, Element, Structure,
 };
 use puzzle_check::common::initialize::initialize;
+use puzzle_check::common::operate_structures::OperateStructure;
 use puzzle_check::common::relationship::{relationship, Relationship, D, H, M, V};
-use puzzle_check::common::{
-    dataclass::{Attribute, BoardSize, Composition, Coordinate, Element, Structure},
-    function::add_up_structures,
-};
-use puzzle_check::specific::board::non_validation;
-use puzzle_check::specific::graph::only_cycle;
-use puzzle_check::{
-    common::combine::{combine, non_cutoff, ValidationFn},
-    specific::board::BoardValidationFn,
-};
+use puzzle_check::specific::board_validation::{BoardValidation, BoardValidationFn};
+use puzzle_check::specific::cutoff::{Cutoff, CutoffFn};
 use rayon::prelude::*;
 use std::collections::HashSet;
 
@@ -41,7 +34,7 @@ fn main() {
     // ----------------------------------------------------------------------
     let R: Vec<Relationship> = vec![H, V];
     let not_R: Vec<Relationship> = vec![M];
-    let cutoff_functions: Vec<ValidationFn> = vec![non_cutoff];
+    let cutoff_functions: Vec<CutoffFn> = vec![Cutoff::non_cutoff];
     let A = combine(R, not_R, &C, &cutoff_functions);
 
     // combineの確認---------------------------
@@ -51,7 +44,7 @@ fn main() {
     // }
     // ---------------------------------------
 
-    let board_validation_functions: Vec<BoardValidationFn> = vec![non_validation];
+    let board_validation_functions: Vec<BoardValidationFn> = vec![BoardValidation::non_validation];
 
     let max_c = ((board_size.0 * board_size.1) as f64).sqrt() as i32;
 
@@ -81,11 +74,11 @@ fn main() {
                     break 'inner;
                 }
             }
-            let new_area = extract_random_structure(&A);
+            let new_area = OperateStructure::extract_random_structure(&A);
             if relationship(&new_area, &B, M) {
                 continue 'inner;
             }
-            B = add_up_structures(&B, &new_area);
+            B = OperateStructure::add_up_structures(&B, &new_area);
             power_A.push(new_area);
         }
         (0..total_combinations_P).into_par_iter().for_each(|pi| {
@@ -128,11 +121,9 @@ fn main() {
                         for structure_c in independent_C.iter_mut() {
                             {
                                 if let Structure::Composition(ref a_content) = area {
-                                    if a_content
-                                        .entity
-                                        .iter()
-                                        .any(|cell| compare_structures(cell, structure_c))
-                                    {
+                                    if a_content.entity.iter().any(|cell| {
+                                        OperateStructure::compare_structures(cell, structure_c)
+                                    }) {
                                         if let Structure::Element(ref mut c_content) = structure_c {
                                             c_content.val = Some(a_content.entity.len() as i32);
                                         }

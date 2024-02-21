@@ -2,23 +2,22 @@
 // name: slitherlink
 
 use indicatif::{ProgressBar, ProgressStyle};
+use puzzle_check::common::combine::combine;
+use puzzle_check::common::initialize::initialize;
+use puzzle_check::common::operate_structures::OperateStructure;
+use puzzle_check::specific::structure_functions::StructureFn;
+
 use puzzle_check::common::dataclass::{
     Attribute, BoardSize, Composition, Coordinate, Element, Structure,
 };
-use puzzle_check::common::function::{
-    compare_structures, cycle, extract_random_structure, power_set, progress_size,
-    random_subset_with_validation,
-};
-use puzzle_check::common::initialize::initialize;
 use puzzle_check::common::relationship::{relationship, Relationship, D, H, M, V};
-use puzzle_check::specific::board::non_validation;
-use puzzle_check::specific::graph::only_cycle;
-use puzzle_check::{
-    common::combine::{combine, ValidationFn},
-    specific::board::BoardValidationFn,
-};
+use puzzle_check::specific::board_validation::{BoardValidation, BoardValidationFn};
+use puzzle_check::specific::cutoff::{Cutoff, CutoffFn};
+
 use rayon::prelude::*;
 use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 const n: i32 = 4;
 const m: i32 = 4;
@@ -30,7 +29,7 @@ fn main() {
     // ----------------------------------------------------------------------
     let R: Vec<Relationship> = vec![H, D, V];
     let not_R: Vec<Relationship> = vec![M];
-    let cutoff_functions: Vec<ValidationFn> = vec![only_cycle];
+    let cutoff_functions: Vec<CutoffFn> = vec![Cutoff::only_cycle];
     let G = combine(R, not_R, &Ep, &cutoff_functions);
 
     // combineの確認---------------------------
@@ -40,7 +39,7 @@ fn main() {
     // }
     // ---------------------------------------
 
-    let board_validation_functions: Vec<BoardValidationFn> = vec![non_validation];
+    let board_validation_functions: Vec<BoardValidationFn> = vec![BoardValidation::non_validation];
 
     let P_domain: Vec<Option<i32>> = vec![None];
     let C_domain: Vec<Option<i32>> = (0..=4).map(Some).collect();
@@ -111,11 +110,9 @@ fn main() {
                     for structure_ep in independent_Ep.iter_mut() {
                         {
                             if let Structure::Composition(ref g_content) = graph {
-                                if g_content
-                                    .entity
-                                    .iter()
-                                    .any(|edge| compare_structures(edge, structure_ep))
-                                {
+                                if g_content.entity.iter().any(|edge| {
+                                    OperateStructure::compare_structures(edge, structure_ep)
+                                }) {
                                     if let Structure::Element(ref mut ep_content) = structure_ep {
                                         ep_content.val = Some(1);
                                     }
@@ -131,7 +128,7 @@ fn main() {
                     for cell in independent_C.iter() {
                         if let Structure::Element(ref cell_content) = cell {
                             if cell_content.val.unwrap()
-                                != cycle(cell, &independent_Ep, &board_size)
+                                != StructureFn::cycle(cell, &independent_Ep, &board_size)
                             {
                                 continue 'board_reset;
                             }
