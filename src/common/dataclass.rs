@@ -41,7 +41,7 @@ pub struct Coordinate(pub i32, pub i32);
 pub struct BoardSize(pub i32, pub i32);
 
 impl Element {
-    // コンストラクタ、初期解はNone
+    // コンストラクタ, 初期解はNone
     pub fn new(attr: Attribute, coor: Coordinate) -> Self {
         Element {
             val: None,
@@ -52,7 +52,7 @@ impl Element {
 }
 
 impl Composition {
-    // コンストラクタ、初期解はNone
+    // コンストラクタ, 初期解はNone
     pub fn new(entity: Vec<Structure>) -> Self {
         Composition { val: None, entity }
     }
@@ -68,7 +68,7 @@ impl Coordinate {
         self.1 += coor.1;
     }
 
-    // 両隣の座標を返す、board_sizeを超える場合があることに注意
+    // 両隣の座標を返す, board_sizeを超える場合があることに注意
     pub fn horizon_points(&self) -> (Coordinate, Coordinate) {
         let left = self.clone();
         let mut right = self.clone();
@@ -76,7 +76,7 @@ impl Coordinate {
         return (left, right);
     }
 
-    // 上下の座標を返す、board_sizeを超える場合があることに注意
+    // 上下の座標を返す, board_sizeを超える場合があることに注意
     pub fn vertical_points(&self) -> (Coordinate, Coordinate) {
         let top = self.clone();
         let mut bottom = self.clone();

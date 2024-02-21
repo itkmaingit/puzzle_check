@@ -10,7 +10,7 @@ pub struct OperateStructure {}
 impl OperateStructure {
     // ---------------------------------------------------------------------------------------------------------------------
     // [overview]
-    // 比較した構造体が同一のものであるかを確認（値チェックは行わず、同じ座標、同じ属性の元素を含んでいるかを確認する）
+    // 比較した構造体が同一のものであるかを確認（値チェックは行わず, 同じ座標, 同じ属性の元素を含んでいるかを確認する）
     // StructureならElement, CompositionどちらでもOK
     // ---------------------------------------------------------------------------------------------------------------------
     // [params]
@@ -32,7 +32,7 @@ impl OperateStructure {
                 c1.entity.iter().all(|e1| {
                     match e1 {
                         Structure::Element(el1) => {
-                            // c2のentity内で、el1と同じCoordinateとAttributeを持つElementが存在するか
+                            // c2のentity内で, el1と同じCoordinateとAttributeを持つElementが存在するか
                             c2.entity.iter().any(|e2| match e2 {
                                 Structure::Element(el2) => el1.coor == el2.coor && el1.attr == el2.attr,
                                 _ => false,
@@ -45,7 +45,7 @@ impl OperateStructure {
             c2.entity.iter().all(|e2| {
                 match e2 {
                     Structure::Element(el2) => {
-                        // c1のentity内で、el2と同じCoordinateとAttributeを持つElementが存在するか
+                        // c1のentity内で, el2と同じCoordinateとAttributeを持つElementが存在するか
                         c1.entity.iter().any(|e1| match e1 {
                             Structure::Element(el1) => el1.coor == el2.coor && el1.attr == el2.attr,
                             _ => false,
@@ -64,13 +64,13 @@ impl OperateStructure {
 
     // ---------------------------------------------------------------------------------------------------------------------
     // [overview]
-    // 構造体全てを含む集合から、ランダムに部分集合を作成する関数
-    // バリデーションを入れることも可。バリデーションがいらなければnon_validationを入力
-    // 実質的な無限ループに注意、基本的に構造体のサイズに制限を入れずにboard_validation_fnを用意すると爆発する
+    // 構造体全てを含む集合から, ランダムに部分集合を作成する関数
+    // バリデーションを入れることも可. バリデーションがいらなければnon_validationを入力
+    // 実質的な無限ループに注意, 基本的に構造体のサイズに制限を入れずにboard_validation_fnを用意すると爆発する
     // ---------------------------------------------------------------------------------------------------------------------
     // [params]
-    // set: &Vec<Structure> - 構造体全てを含む集合、基本的にcombineの返り値を入れればよい。
-    // board_validation_fn: &Vec<BoardValidationFn> - 盤面に存在する構造体同士が満たすべきバリデーションを入れる。重なっていない(Mでない)を入力することが多い。
+    // set: &Vec<Structure> - 構造体全てを含む集合, 基本的にcombineの返り値を入れればよい.
+    // board_validation_fn: &Vec<BoardValidationFn> - 盤面に存在する構造体同士が満たすべきバリデーションを入れる. 重なっていない(Mでない)を入力することが多い.
     // ---------------------------------------------------------------------------------------------------------------------
     // [return]
     // Vec<Structure> - 作成された部分集合
@@ -83,7 +83,7 @@ impl OperateStructure {
         'outer: loop {
             let mut subset = Vec::new();
             for item in set {
-                // 各要素について、50%の確率で部分集合に含める
+                // 各要素について, 50%の確率で部分集合に含める
                 if rng.gen_bool(0.5) {
                     subset.push(item.clone());
                 }
@@ -102,11 +102,11 @@ impl OperateStructure {
 
     // ---------------------------------------------------------------------------------------------------------------------
     // [overview]
-    // 構造体全てを含む集合から、ランダムに構造体をただ一つだけ取り出す関数
+    // 構造体全てを含む集合から, ランダムに構造体をただ一つだけ取り出す関数
     // 基本的にB(X)=1のconstraintsの時に使用する
     // ---------------------------------------------------------------------------------------------------------------------
     // [params]
-    // structures: &Vec<Structure> - 構造体全てを含む集合、基本的にcombineの返り値を入れればよい。
+    // structures: &Vec<Structure> - 構造体全てを含む集合, 基本的にcombineの返り値を入れればよい.
     // ---------------------------------------------------------------------------------------------------------------------
     // [return]
     // Structure - ランダムに取り出された構造体
@@ -186,7 +186,7 @@ impl OperateStructure {
     // ---------------------------------------------------------------------------------------------------------------------
     // [overview]
     // ある構造体から（主に）元素列から元素を取り出すための関数
-    // 基本的に構造体内部に元素の解は保存されていないので、元素列から解を抽出するために用いる
+    // 基本的に構造体内部に元素の解は保存されていないので, 元素列から解を抽出するために用いる
     // ---------------------------------------------------------------------------------------------------------------------
     // [params]
     // compares: &Vec<Structure> - 元素列
@@ -203,11 +203,11 @@ impl OperateStructure {
 
         if let Structure::Composition(ref parent_content) = parent {
             for child in parent_content.entity.iter() {
-                // comparesの中で、pと比較してtrueになる要素を探す
+                // comparesの中で, pと比較してtrueになる要素を探す
                 for compare in compares.iter() {
                     if OperateStructure::compare_structures(child, compare) {
-                        // 条件に合致する場合、containsに追加
-                        // ただし、containsに既に同じ要素がないかを確認
+                        // 条件に合致する場合, containsに追加
+                        // ただし, containsに既に同じ要素がないかを確認
                         if !contains
                             .iter()
                             .any(|x| OperateStructure::compare_structures(x, compare))
